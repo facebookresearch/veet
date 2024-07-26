@@ -1,0 +1,38 @@
+{
+  "appId": "VEET.Manager",
+  "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
+  "directories": {
+    "buildResources": "buildResources",
+    "output": "dist"
+  },
+  "extraFiles": [
+    "README.md",
+    "ATTRIBUTION.md",
+    "firmware/*.bin",
+    "firmware/manifest.json",
+    "documentation/*"
+  ],
+  "electronDownload": {
+    "cache": ".buildCache"
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "artifactName": "${name}-setup-${version}-win.${ext}",
+    "packElevateHelper": false,
+    "uninstallDisplayName": "${productName}"
+  },
+  "mac": {
+    "target": [
+      "dmg"
+    ]
+  },
+  "dmg": {
+  }
+}
