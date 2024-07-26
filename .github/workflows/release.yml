@@ -27,23 +27,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, windows-latest ]
+        # macos-13 is x64, macos-latest is arm64
+        os: [ macos-latest, macos-13, windows-latest ]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-      - run: corepack enable
-      - uses: actions/setup-node@v4
+      # Setup environment
+      - name: Update node to 22.x before enabling corepack
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Setup Node w/ Yarn Cache
+        uses: actions/setup-node@v4
         with:
           cache: 'yarn'
-          node-version: '20.x'
-      - run: yarn install --immutable
+          node-version: '22.x'
+      - name: Yarn Install
+        run: yarn install --immutable
 
       - run: yarn build
 
       - name: Compile artifacts ${{ inputs.dry-run && '' || 'and upload them to github release' }}
-      - run: ./node_modules/.bin/electron-builder --config electron-builder.json --publish ${{ inputs.dry-run && 'never' || 'always' }}
+        run: ./node_modules/.bin/electron-builder --config electron-builder.json --publish ${{ inputs.dry-run && 'never' || 'always' }}
         env:
           # Code Signing params
           # See https://www.electron.build/code-signing

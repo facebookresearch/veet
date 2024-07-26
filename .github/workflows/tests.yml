@@ -14,16 +14,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macos-latest ]
+        # macos-13 is x64, macos-latest is arm64
+        os: [ windows-latest, macos-13, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - run: corepack enable
-      - uses: actions/setup-node@v4
+      # Setup environment
+      - name: Update node to 22.x before enabling corepack
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Setup Node w/ Yarn Cache
+        uses: actions/setup-node@v4
         with:
           cache: 'yarn'
-          node-version: '20.x'
-      - run: yarn install --immutable
+          node-version: '22.x'
+      - name: Yarn Install
+        run: yarn install --immutable
+
+      # Run tests
       - run: yarn test:main
       - run: yarn test:preload
       - run: yarn test:renderer
