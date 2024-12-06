@@ -1,0 +1,25 @@
+name: Typechecking
+on: [ workflow_call ]
+
+concurrency:
+  group: typechecking-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
+          node-version: '20.x'
+      - run: yarn install --immutable
+
+      - run: yarn typecheck

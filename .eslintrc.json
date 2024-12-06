@@ -1,0 +1,78 @@
+{
+  "root": true,
+  "env": {
+    "es2021": true,
+    "node": true,
+    "browser": false
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "plugins": ["@typescript-eslint"],
+  "ignorePatterns": ["node_modules/**", "**/dist/**"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/consistent-type-imports": "error",
+    "semi": ["error", "always"],
+    "comma-dangle": ["warn", "always-multiline"],
+    "quotes": [
+      "warn",
+      "single",
+      {
+        "avoidEscape": true
+      }
+    ],
+    "no-console": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "packages/main/**/*.ts"
+      ],
+      "excludedFiles": ["**/*.spec.ts", "**/*.test.ts"],
+      "parserOptions": {
+        "ecmaVersion": 12,
+        "sourceType": "module",
+        "project": true,
+        "tsconfigRootDir": "./packages/main/"
+      },
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "error"
+      }
+    },
+    {
+      "files": [
+        "packages/renderer/**/*.ts"
+      ],
+      "env": {
+        "browser": true,
+        "node": false
+      }
+    },
+    {
+      "files": [
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "scripts/**/*.ts",
+        "scripts/**/*.js"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}

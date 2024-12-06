@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>relative-path-to-sign</key>
+  <string></string>
+  <key>use-entitlements</key>
+  <true/>
+  <key>extra-paths-to-sign</key>
+  <array>
+    <string>Versions/A/Helpers/chrome_crashpad_handler</string>
+  </array>
+</dict>
+</plist>

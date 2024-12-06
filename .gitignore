@@ -1,0 +1,23 @@
+node_modules
+.DS_Store
+dist
+*.local
+thumbs.db
+
+.eslintcache
+.browserslistrc
+#.electron-vendors.cache.json
+.buildCache
+
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Override global ignore, but then reimplement it. We just want launch.json
+!.vscode
+.vscode/*
+!.vscode/launch.json

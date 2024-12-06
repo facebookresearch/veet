@@ -1,0 +1,46 @@
+{
+  "appId": "com.meta.veetmanager",
+  "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
+  "directories": {
+    "buildResources": "buildResources",
+    "output": "dist"
+  },
+  "extraResources": [
+    "README.md",
+    "ATTRIBUTION.md",
+    "firmware/*.bin",
+    "firmware/manifest.json",
+    "documentation/*"
+  ],
+  "electronDownload": {
+    "cache": ".buildCache"
+  },
+  "win": {
+    "target": [
+      "nsis"
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "packElevateHelper": false,
+    "uninstallDisplayName": "${productName}"
+  },
+  "mac": {
+    "category": "public.app-category.utilities",
+    "gatekeeperAssess": false,
+    "hardenedRuntime": true,
+    "identity": null,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "singleArchFiles": "*",
+    "target": {
+      "target": "dmg",
+      "arch": "universal"
+    }
+  },
+  "dmg": {
+    "sign": false
+  }
+}

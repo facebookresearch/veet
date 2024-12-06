@@ -1,0 +1,63 @@
+name: Lint
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**.js'
+      - '**.mjs'
+      - '**.cjs'
+      - '**.jsx'
+      - '**.ts'
+      - '**.mts'
+      - '**.cts'
+      - '**.tsx'
+  pull_request:
+    paths:
+      - '**.js'
+      - '**.mjs'
+      - '**.cjs'
+      - '**.jsx'
+      - '**.ts'
+      - '**.mts'
+      - '**.cts'
+      - '**.tsx'
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  eslint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
+          node-version: '20.x'
+      - run: yarn install --immutable
+
+      - run: yarn lint
+
+  # This job just check code style for in-template contributions.
+  # TODO: pretty up code, haven't been running this
+  # code-style:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+        # - uses: actions/checkout@v4
+        # - run: corepack enable
+        # - uses: actions/setup-node@v4
+        #   with:
+        #     cache: 'yarn'
+        #     node-version: '20.x'
+        # - run: yarn install --immutable
+
+  #     - run: npm i prettier
+  #     - run: npx prettier --check "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}"
