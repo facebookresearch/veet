@@ -72,7 +72,7 @@ export function loadSettingsFromJson(settingJson: string, errorHandler?: ErrorMe
     logger.error('Failed to parse settings', {json: settingJson, parseError: parsed.error});
     return;
   }
-  logger.info('Success fully loaded settings data');
+  logger.info('Successfully loaded settings data');
   updateSettingsStore(parsed.data);
   logger.info(gSettingsData);
 }

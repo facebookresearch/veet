@@ -23,6 +23,7 @@ export const ConnectionStatus = () => {
   const deviceSide:string|null = useStoreData('deviceSide');
   let researcherID:string|null = useConfigStoreData('researcherID');
   const drivePath = useStoreData('drivePath');
+  const driveFound = useStoreData('driveFound');
 
   // Have we found the drive yet?
   if (!drivePath) {
@@ -45,7 +46,11 @@ export const ConnectionStatus = () => {
    if (researcherID) {
      researcherString = <span data-classes={subHeadingFont}>RESEARCHER_ID: {researcherID}</span>;
    } else {
-     researcherString = <span data-classes={subHeadingFont}>Searching for storage device...</span>;
+     if (driveFound) {
+       researcherString = <span data-classes={subHeadingFont}>Drive found, waiting for OS to mount...</span>;
+     } else {
+       researcherString = <span data-classes={subHeadingFont}>Searching for storage device...</span>;
+     }
    }
  }
 

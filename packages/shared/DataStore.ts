@@ -23,6 +23,7 @@ export interface VEETDataStore {
   serialNumber: string|null;
   timeOnVeet: number|null,
   commandInFlight: boolean;
+  driveFound: boolean;
   drivePath: string|null;
   sensorDataFilePath: string|null;
   driveSpaceAvailable: number;
@@ -51,6 +52,7 @@ const initialData: VEETDataStore = deepFreeze({
   serialNumber: null,
   timeOnVeet: null,
   commandInFlight: false,
+  driveFound: false,
   drivePath: null,
   sensorDataFilePath: null,
   driveSpaceAvailable: 0,

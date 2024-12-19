@@ -278,7 +278,11 @@ export class MainWindow {
 
         // On Connection, restart polls
         await this.startDriveSearch();
-        if (!this.isConnected_) { return; }
+        if (!this.isConnected_) {
+          // We disconnected before we could find the drive, so stop looking
+          this.driveRetry_ && clearInterval(this.driveRetry_);
+          return;
+        }
         await this.checkSerialNumber();
         if (!this.isConnected_) { return; }
         await this.startPolls();
@@ -360,7 +364,11 @@ export class MainWindow {
       const drives = await list();
       let found = false;
       for (const drive of drives) {
-        if (drive.description.startsWith(VEET_DRIVE_DESCRIPTION) && drive.mountpoints && drive.mountpoints.length > 0) {
+        if (!drive.description.startsWith(VEET_DRIVE_DESCRIPTION)) {
+          continue;
+        }
+        logger.info(`Found VEET Drive at ${drive.device}, checking mountpoints`);
+        if (drive.mountpoints && drive.mountpoints.length > 0) {
           // Found drive!
           const drivePath = drive.mountpoints[0].path;
           found = true;
@@ -377,6 +385,9 @@ export class MainWindow {
             this.driveRetry_ = null;
           }
           break;
+        } else {
+          logger.info(`No mountpoints found for VEET drive at ${drive.device}`);
+          setDatastoreValue('driveFound', true);
         }
       }
       if (!found) {

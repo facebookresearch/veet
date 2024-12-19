@@ -31,6 +31,10 @@ export const RegisterMainLogger = () => {
         new winston.transports.Console(),
         rotatedLog,
       ],
+      format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json(),
+      ),
     }),
   );
 };

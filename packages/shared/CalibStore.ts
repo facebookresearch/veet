@@ -70,7 +70,7 @@ export function loadCalibFromJson(calibJson: string, errorHandler?: ErrorMessage
     logger.error('Failed to parse calib', {json: calibJson, parseError: parsed.error});
     return false;
   }
-  logger.info('Success fully loaded calib data');
+  logger.info('Successfully loaded calib data');
   updateCalibStore(parsed.data);
   logger.info(gCalibData);
   return true;

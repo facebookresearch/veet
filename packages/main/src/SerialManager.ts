@@ -19,6 +19,9 @@ const TOTAL_TIMEOUT = 1 * 1000; // 1 second should be enough for every command
 const END_OF_TRANSMISSION_DELIMITER = Buffer.from([0x04]); // EOT - 0x04
 const TIME_BEFORE_INFLIGHT_DISPLAY = 100;
 
+const VEET_PRODUCT_ID = '0001';
+const VEET_VENDOR_ID = '04d8';
+
 export enum SerialConnectionStatus {
   UNKNOWN,
   NONE_FOUND,
@@ -63,16 +66,24 @@ export class SerialManager extends EventEmitter {
     if (this.isConnected()) {
       return SerialConnectionStatus.CONNECTED;
     }
+    logger.info('Searching for serial ports');
     const portList = await SerialPort.list();
     if (portList.length == 0) {
       this.connectedPort_ = UnconnectedPort;
       this.connection_ = null;
-      logger.info('Searching for serial ports, none found');
+      logger.info('None found');
       return SerialConnectionStatus.NONE_FOUND;
     } else {
-      logger.info(`Searching for serial ports, ${portList.length} found`);
+      logger.info(`${portList.length} ports found`);
     }
+    let foundValidIDs = false;
     for (const portInfo of portList) {
+      if (portInfo.vendorId?.toLowerCase() != VEET_VENDOR_ID || portInfo.productId != VEET_PRODUCT_ID) {
+        continue;
+      }
+      foundValidIDs = true;
+      logger.info('Found matching product and vendor IDs on port ' + portInfo.path);
+      const startPerf = performance.now();
       logger.info('Attempting to connect to port ' + portInfo.path);
       const connection = new SerialConnection();
       const isReady = await connection.connect(portInfo.path);
@@ -82,13 +93,19 @@ export class SerialManager extends EventEmitter {
         this.connectedPort_ = portInfo.path;
         setDatastoreValue('connectionPort', portInfo.path);
         connection.on('disconnect', this.disconnect);
+        logger.info(`Connected to port ${portInfo.path} in ${Math.ceil(performance.now() - startPerf)}ms`);
         return SerialConnectionStatus.CONNECTED;
       } else {
         // Shouldn't happpen, but if findVeet is called twice there is a race condition
         if (this.isConnected()) {
+          logger.info(`Aborted connecting to port ${portInfo.path} in ${Math.ceil(performance.now() - startPerf)}ms`);
           return SerialConnectionStatus.CONNECTED;
         }
+        logger.info(`Failed to connect to port ${portInfo.path} in ${Math.ceil(performance.now() - startPerf)}ms`);
       }
+    }
+    if (!foundValidIDs) {
+      logger.info('No valid product and vendor IDs found');
     }
     return SerialConnectionStatus.NONE_FOUND;
   };
