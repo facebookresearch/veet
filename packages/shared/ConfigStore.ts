@@ -12,7 +12,7 @@ import { isRenderer, parseJSON } from './utils';
 import type { ErrorMessageHandler } from './constants';
 import { logger } from './Logger';
 
-const MIN_INTERVAL = 100;
+const MIN_INTERVAL = 0;
 const DEFAULT_INTERVAL = 2000;
 const intervalShape = z.number().gte(MIN_INTERVAL).int().default(DEFAULT_INTERVAL).catch(DEFAULT_INTERVAL);
 const stringDefault = 'NOT SET';

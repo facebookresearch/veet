@@ -31,7 +31,7 @@ export const loadCalib = async (mainWindow: MainWindow) => {
   if (loadedCalib) {
     // Do we have a deviceID in the calibration file?
     if (!getCalibStore().deviceID) {
-      await mainWindow.showMessageBox({
+      void mainWindow.showMessageBox({
         title: 'Missing Calibration',
         message: 'No deviceID found in calibration file. This most likely means that the device is not calibrated. Please contact support at VEETSupport@meta.com',
       });
@@ -41,7 +41,7 @@ export const loadCalib = async (mainWindow: MainWindow) => {
         await mainWindow.checkSerialNumber(); // in case it hasn't run yet
       }
       if (getCalibStore().deviceID != getDataStore().serialNumber) {
-        await mainWindow.showMessageBox({
+        void mainWindow.showMessageBox({
           title: 'Mismatched Calibration ID',
           message: `The deviceID in the calibration file is ${getCalibStore().deviceID}, but the device serial number is ${getDataStore().serialNumber}. This might mean your device is miscalibrated. Please contact support at VEETSupport@meta.com`,
         });
