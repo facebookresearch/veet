@@ -6,8 +6,11 @@
   "main": "packages/main/dist/index.js",
   "license": "SEE LICENSE IN LICENSE",
   "type": "module",
+  "config": {
+    "repo_path": "arvr/projects/xred/veet/veetmanager"
+  },
   "scripts": {
-    "preinstall": "((edenfsctl info . | findstr eden-backing-repos) && eden redirect add arvr/projects/xred/veet/veetmanager/node_modules symlink ) || echo no eden found",
+    "preinstall": "(node -e \"process.exit(process.platform === 'darwin' ? 1 : 0)\" && ((edenfsctl info . && eden redirect add $npm_package_config_repo_path/node_modules symlink) || echo no eden found)) || echo no redirects on macOS",
     "build": "yarn run viteBuild && electron-builder",
     "viteBuild": "yarn run viteBuild:main && yarn run viteBuild:preload && yarn run viteBuild:renderer",
     "viteBuild:main": "vite build ./packages/main",
