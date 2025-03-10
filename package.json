@@ -10,7 +10,7 @@
     "repo_path": "arvr/projects/xred/veet/veetmanager"
   },
   "scripts": {
-    "preinstall": "(node -e \"process.exit(process.platform === 'darwin' ? 1 : 0)\" && ((edenfsctl info . && eden redirect add $npm_package_config_repo_path/node_modules symlink) || echo no eden found)) || echo no redirects on macOS",
+    "preinstall": "(node -e \"process.exit(process.platform === 'win32' ? 0 : 1)\" && ((edenfsctl info . && eden redirect add $npm_package_config_repo_path/node_modules symlink) || echo no eden found)) || echo redirects only on win32",
     "build": "yarn run viteBuild && electron-builder",
     "viteBuild": "yarn run viteBuild:main && yarn run viteBuild:preload && yarn run viteBuild:renderer",
     "viteBuild:main": "vite build ./packages/main",
