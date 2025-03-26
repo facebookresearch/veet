@@ -9,9 +9,9 @@
  * @module preload
  */
 
-import type {ContextBridgeApi} from '../../shared/ContextBridgeApi';
-import { contextBridge, ipcRenderer} from 'electron';
-import {commands} from '../../shared/commands';
+import type { ContextBridgeApi } from '../../shared/ContextBridgeApi';
+import { contextBridge, ipcRenderer } from 'electron';
+import { commands } from '../../shared/commands';
 import type { TAB_TYPE } from '../../shared/constants';
 import type { ConfigStore } from '../../shared/ConfigStore';
 
@@ -23,7 +23,6 @@ const exposedApi: ContextBridgeApi = {
   showFolder: (path: string) => ipcRenderer.invoke(commands.showFolder, path),
   setCurrentTab: (tabName: TAB_TYPE) => ipcRenderer.invoke(commands.setCurrentTab, tabName),
   sendConfigStoreValue: <KeyString extends keyof (ConfigStore)>(key: KeyString, value: ConfigStore[KeyString]) => ipcRenderer.invoke(commands.sendConfigStoreValue, key, value),
-  updateCalibrationFile: () => ipcRenderer.invoke(commands.updateCalibrationFile),
   saveConfigTemplate: () => ipcRenderer.invoke(commands.saveConfigTemplate),
   loadConfigTemplate: () => ipcRenderer.invoke(commands.loadConfigTemplate),
   reuseLastConfigTemplate: () => ipcRenderer.invoke(commands.reuseLastConfigTemplate),
@@ -43,12 +42,6 @@ const exposedApi: ContextBridgeApi = {
     const emitter = ipcRenderer.on(commands.updateConfigStore, cb);
     return () => {
       emitter.removeListener(commands.updateConfigStore, cb);
-    };
-  },
-  updateCalibStore: cb => {
-    const emitter = ipcRenderer.on(commands.updateCalibStore, cb);
-    return () => {
-      emitter.removeListener(commands.updateCalibStore, cb);
     };
   },
   updateSettingsStore: cb => {

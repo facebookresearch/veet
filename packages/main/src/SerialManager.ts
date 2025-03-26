@@ -5,9 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import {DelimiterParser, SerialPort} from 'serialport';
-import type {Transform} from 'stream';
-import {once, EventEmitter} from 'events';
+import { DelimiterParser, SerialPort } from 'serialport';
+import type { Transform } from 'stream';
+import { once, EventEmitter } from 'events';
 import { getDataStore, setDatastoreValue } from '../../shared/DataStore';
 import { Queue } from 'async-await-queue';
 import { logger } from '../../shared/Logger';
@@ -18,6 +18,8 @@ const LINE_ENDINGS_SEND = '\r'; // carriage return for sending
 const TOTAL_TIMEOUT = 1 * 1000; // 1 second should be enough for every command
 const END_OF_TRANSMISSION_DELIMITER = Buffer.from([0x04]); // EOT - 0x04
 const TIME_BEFORE_INFLIGHT_DISPLAY = 100;
+
+const LOG_COMMAND_FLIGHT_TIMES = false;
 
 const VEET_PRODUCT_ID = '0001';
 const VEET_VENDOR_ID = '04d8';
@@ -110,7 +112,7 @@ export class SerialManager extends EventEmitter {
     return SerialConnectionStatus.NONE_FOUND;
   };
 
-  runCommand = async (cmd: string): Promise<string|null> => {
+  runCommand = async (cmd: string): Promise<string | null> => {
     if (!this.connection_) return null;
     const response = await this.connection_.writeWithResponse(cmd);
     if (response.code == WriteResponseCode.VALID_RESPONSE) {
@@ -128,8 +130,8 @@ export class WriteResponse {
 }
 
 class SerialConnection extends EventEmitter {
-  private port_: SerialPort|undefined;
-  private parser_: Transform|undefined;
+  private port_: SerialPort | undefined;
+  private parser_: Transform | undefined;
 
   // Only allow one concurrent serial command, but no need to wait until it's done
   // (already waiting 300ms until serial connection drained)
@@ -209,7 +211,7 @@ class SerialConnection extends EventEmitter {
     // Wait our turn
     await this.queue_.wait(mySymbol);
     const postWaitTime = performance.now();
-    let cmdTakingTooLong: NodeJS.Timeout|null = null;
+    let cmdTakingTooLong: NodeJS.Timeout | null = null;
 
     try {
       const resp = new WriteResponse();
@@ -266,7 +268,9 @@ class SerialConnection extends EventEmitter {
       this.queue_.end(mySymbol);
       cmdTakingTooLong && clearTimeout(cmdTakingTooLong);
       setDatastoreValue('commandInFlight', false);
-      logger.info(`Executed command ${toWrite.slice(0,2)} in ${Math.ceil(performance.now() - postWaitTime)}ms, after waiting ${Math.ceil(postWaitTime - startTime)}ms`);
+      if (LOG_COMMAND_FLIGHT_TIMES) {
+        logger.info(`Executed command ${toWrite.slice(0, 2)} in ${Math.ceil(performance.now() - postWaitTime)}ms, after waiting ${Math.ceil(postWaitTime - startTime)}ms`);
+      }
     }
   };
 }

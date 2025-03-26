@@ -12,7 +12,6 @@ import type {ContextBridgeApi} from '../../shared/ContextBridgeApi';
 import { updateDataStore } from '../../shared/DataStore';
 import { updateConfigStore } from '../../shared/ConfigStore';
 import { updateSettingsStore } from '../../shared/SettingsStore';
-import { updateCalibStore } from '../../shared/CalibStore';
 import { RegisterRendererLogger } from './RendererLogger';
 
 declare global {
@@ -30,9 +29,6 @@ window.bridgeApi.updateConfigStore((_, newData) => {
   updateConfigStore(newData);
 });
 
-window.bridgeApi.updateCalibStore((_, newData) => {
-  updateCalibStore(newData);
-});
 
 window.bridgeApi.updateSettingsStore((_, newData) => {
   updateSettingsStore(newData);

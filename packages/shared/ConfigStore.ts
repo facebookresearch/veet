@@ -87,12 +87,12 @@ export function loadConfigFromJson(configJson: string, errorHandler?: ErrorMessa
   const parsed = ConfigStoreZ.safeParse(configObj);
   if (!parsed.success) {
     errorHandler?.(`Failed to parse config.json.\n${parsed.error}`, 'Config Error');
-    logger.error('Failed to parse config', {json: configJson, parseError: parsed.error});
+    logger.error('Failed to parse config', { json: configJson, parseError: parsed.error });
     return;
   }
   logger.info('Successfully loaded config data');
   updateConfigStore(parsed.data);
-  logger.info(gConfigData);
+  logger.info(JSON.stringify(gConfigData));
 }
 
 export function getIntervalConfig(): IntervalConfig {
@@ -110,7 +110,7 @@ export function loadIntervalConfigFromJson(intervalConfigJson: string): boolean 
   }
   const parsed = IntervalConfigZ.safeParse(intervalConfigObj);
   if (!parsed.success) {
-    logger.error('Failed to parse interval config', {json: intervalConfigJson, parseError: parsed.error});
+    logger.error('Failed to parse interval config', { json: intervalConfigJson, parseError: parsed.error });
     return false;
   }
   for (const key of intervalKeys) {
@@ -121,7 +121,7 @@ export function loadIntervalConfigFromJson(intervalConfigJson: string): boolean 
 
 // While simply-immutable supports deep pathnames, type safety gets complicated and we don't need deep paths
 // So, limiting to a single key, but that key is properly enforced
-export function useConfigStoreData<KeyString extends keyof(ConfigStore)>(key: KeyString): ConfigStore[KeyString] {
+export function useConfigStoreData<KeyString extends keyof (ConfigStore)>(key: KeyString): ConfigStore[KeyString] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [state, setState] = useState(gConfigData[key] as any);
 
@@ -144,7 +144,7 @@ export function useConfigStoreData<KeyString extends keyof(ConfigStore)>(key: Ke
   return state;
 }
 
-export function setConfigStoreValue<KeyString extends keyof(ConfigStore)>(key: KeyString, value: ConfigStore[KeyString]) {
+export function setConfigStoreValue<KeyString extends keyof (ConfigStore)>(key: KeyString, value: ConfigStore[KeyString]) {
   if (isRenderer()) {
     logger.error('Can not setConfigStoreValue in renderer, use window.bridgeApi.sendConfigStoreValue()');
     return;

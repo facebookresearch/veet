@@ -6,7 +6,7 @@
  */
 
 import winston from 'winston';
-import  'winston-daily-rotate-file';
+import 'winston-daily-rotate-file';
 import { RegisterLogger } from '../../shared/Logger';
 import { app } from 'electron';
 
@@ -22,19 +22,26 @@ export const RegisterMainLogger = () => {
     zippedArchive: true,
     maxSize: '20m',
     maxFiles: '14d',
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.json(),
+    ),
+  });
+
+  const debugConsole = new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple(),
+    ),
   });
 
   RegisterLogger(
     winston.createLogger({
       level: 'info',
       transports: [
-        new winston.transports.Console(),
         rotatedLog,
+        debugConsole,
       ],
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json(),
-      ),
     }),
   );
 };

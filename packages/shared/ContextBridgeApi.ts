@@ -5,8 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type {IpcRendererEvent} from 'electron';
-import type { CalibStore } from './CalibStore';
+import type { IpcRendererEvent } from 'electron';
 import type { ConfigStore } from './ConfigStore';
 import type { TAB_TYPE } from './constants';
 import type { VEETDataStore } from './DataStore';
@@ -18,8 +17,7 @@ export type ContextBridgeApi = {
   requestStoresUpdate: () => void;
   showFolder: (path: string) => void;
   setCurrentTab: (tabName: TAB_TYPE) => void; // todo, generalize setting settings from the renderer
-  sendConfigStoreValue: <KeyString extends keyof (ConfigStore)>(key: KeyString, value: ConfigStore[KeyString]) => void; // todo: remove this in favor of a two-way datastore
-  updateCalibrationFile: () => void;
+  sendConfigStoreValue: <KeyString extends keyof (ConfigStore) >(key: KeyString, value: ConfigStore[KeyString]) => void; // todo: remove this in favor of a two-way datastore
   saveConfigTemplate: () => void;
   loadConfigTemplate: () => void;
   reuseLastConfigTemplate: () => void;
@@ -31,6 +29,5 @@ export type ContextBridgeApi = {
   // Main -> Renderer
   updateDataStore: (cb: (event: IpcRendererEvent, dataStore: VEETDataStore) => void) => () => void; // return unsubscribe callback
   updateConfigStore: (cb: (event: IpcRendererEvent, configStore: ConfigStore) => void) => () => void; // return unsubscribe callback
-  updateCalibStore: (cb: (event: IpcRendererEvent, calibStore: CalibStore) => void) => () => void; // return unsubscribe callback
   updateSettingsStore: (cb: (event: IpcRendererEvent, configStore: SettingsStore) => void) => () => void; // return unsubscribe callback
 };

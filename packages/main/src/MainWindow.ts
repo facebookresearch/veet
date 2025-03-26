@@ -8,28 +8,27 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, screen } from 'electron';
 import { getDataStore, registerChangeHandler, resetDataStore, setDatastoreValue } from '../../shared/DataStore';
 import { commands } from '../../shared/commands';
-import { SerialConnectionStatus, SerialManager  } from './SerialManager';
+import { SerialConnectionStatus, SerialManager } from './SerialManager';
 import { invLerpClamped } from '../../shared/utils';
 import { list } from 'drivelist';
 import { check } from 'diskusage';
 
 import * as path from 'path';
 import * as fsPromises from 'fs/promises';
-import {fileURLToPath} from 'node:url';
+import { fileURLToPath } from 'node:url';
 import type { TAB_TYPE } from '../../shared/constants';
 import { CONFIG_FILENAME, DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, SENSOR_DATA_FILENAME, TAB_NAMES, VEET_DRIVE_DESCRIPTION } from '../../shared/constants';
 import { getConfigStore, getIntervalConfig, loadConfigFromJson, loadIntervalConfigFromJson, registerConfigChangeHandler, setConfigStoreValue } from '../../shared/ConfigStore';
 import { getSettingsStore, registerSettingsChangeHandler, setSettingsStoreValue } from '../../shared/SettingsStore';
 import { SetupCustomMenus } from './Menu';
 import { debounce } from 'ts-debounce';
-import type { FSWatcher} from 'fs';
+import type { FSWatcher } from 'fs';
 import { watch } from 'fs';
-import { getCalibStore, registerCalibChangeHandler } from '../../shared/CalibStore';
 import { checkFirmwareUpdate, checkHardwareVersion, updateFirmware } from './VersionManager';
 import { logger } from '../../shared/Logger';
 import { RegisterMainLogger } from './MainLogger';
 import { StreamRecorder } from './StreamRecorder';
-import { loadCalib, updateCalibrationFile } from './CalibManager';
+import { inspectCalibrationStatus } from './CalibManager';
 import { retryWrapper } from './mainUtils';
 
 RegisterMainLogger();
@@ -52,25 +51,26 @@ const ALS_POLL_COMMAND = 'S3';
 // In dev mode we can use getAppPath, but in prod it is packaged into an asar file and the path is extra deep
 export const ROOT_RESOURCE_PATH = () => import.meta.env.DEV ? app.getAppPath() : process.resourcesPath;
 export const FIRMWARE_PATH = () => path.join(ROOT_RESOURCE_PATH(), 'firmware');
+export const CALIBRATIONDB_PATH = () => path.join(FIRMWARE_PATH(), 'calibrationDB.json');
 export const DOCUMENTATION_PATH = () => path.join(ROOT_RESOURCE_PATH(), 'documentation');
 const VEET_MANUAL_PATH = () => path.join(DOCUMENTATION_PATH(), 'VEET 2.0 Device Manual.pdf');
 
 export class MainWindow {
   private serialManager_: SerialManager;
-  private browserWindow_: BrowserWindow|undefined = undefined;
+  private browserWindow_: BrowserWindow | undefined = undefined;
   private isConnected_ = false;
   private connectionAttemptInFlight_ = false;
   private currentTab_: TAB_TYPE | null = null;
-  private streamRecorder_: StreamRecorder|undefined = undefined;
+  private streamRecorder_: StreamRecorder | undefined = undefined;
 
   // Intervals
-  private batteryInterval_: NodeJS.Timeout|null = null;
-  private clockInterval_: NodeJS.Timeout|null = null;
-  private connectionRetry_: NodeJS.Timeout|null = null;
-  private driveRetry_: NodeJS.Timeout|null = null;
-  private driveWatch_: FSWatcher|null = null;
+  private batteryInterval_: NodeJS.Timeout | null = null;
+  private clockInterval_: NodeJS.Timeout | null = null;
+  private connectionRetry_: NodeJS.Timeout | null = null;
+  private driveRetry_: NodeJS.Timeout | null = null;
+  private driveWatch_: FSWatcher | null = null;
   private sensorPollThreadRunning = false;
-  private deleteFileOnConnection_: string|null = null;
+  private deleteFileOnConnection_: string | null = null;
 
 
   constructor() {
@@ -114,7 +114,7 @@ export class MainWindow {
     logger.info('Pixel Scale Factor: ' + pixelScaleFactor);
     logger.info(`Width: ${width}, Height: ${height}`);
 
-  // Create the browser window.
+    // Create the browser window.
     this.browserWindow_ = new BrowserWindow({
       show: false, // Use the 'ready-to-show' event to show the instantiated BrowserWindow.
       height: height,
@@ -166,7 +166,7 @@ export class MainWindow {
      * Load the main page of the main window.
      */
     await this.loadEntryPoint(this.browserWindow_, 'index.html');
-    logger.info('Done loading typescript in ' + Math.ceil(performance.now() - loadTimeStart) +'ms');
+    logger.info('Done loading typescript in ' + Math.ceil(performance.now() - loadTimeStart) + 'ms');
 
     // Open the DevTools.
     //this.openDevTools();
@@ -198,9 +198,9 @@ export class MainWindow {
   };
 
   // null means failure (we'll display an error)
-  runCommand = async (_: Electron.IpcMainInvokeEvent|null, cmd: string): Promise<string|null> => {
+  runCommand = async (_: Electron.IpcMainInvokeEvent | null, cmd: string): Promise<string | null> => {
     if (!this.isConnected_) {
-        // TODO: Display Error
+      // TODO: Display Error
       return null;
     }
     return await this.serialManager_.runCommand(cmd);
@@ -433,7 +433,7 @@ export class MainWindow {
 
     // Do checks we need to do once we find the drive
     await checkFirmwareUpdate(this);
-    await loadCalib(this);
+    await inspectCalibrationStatus(this);
     await this.analyzeSensorData();
     await this.loadConfig();
   };
@@ -481,7 +481,7 @@ export class MainWindow {
     }, DEFAULT_RETRY_COUNT, DEFAULT_RETRY_DELAY);
   };
 
-  showMessageBox = async (options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue|undefined> => {
+  showMessageBox = async (options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue | undefined> => {
     if (!this.browserWindow_) {
       logger.error('Unable to display error message, no browser window found');
       return;
@@ -489,7 +489,7 @@ export class MainWindow {
     return await dialog.showMessageBox(this.browserWindow_, options);
   };
 
-  showOpenDialog = async (options: Electron.OpenDialogOptions): Promise<Electron.OpenDialogReturnValue|undefined> => {
+  showOpenDialog = async (options: Electron.OpenDialogOptions): Promise<Electron.OpenDialogReturnValue | undefined> => {
     if (!this.browserWindow_) {
       logger.error('Unable to display error message, no browser window found');
       return;
@@ -563,11 +563,11 @@ export class MainWindow {
     }
     try {
       const configPath = path.join(drivePath, CONFIG_FILENAME);
-      const configJson = await fsPromises.readFile(configPath, {encoding: 'utf8'});
+      const configJson = await fsPromises.readFile(configPath, { encoding: 'utf8' });
       const CONFIG_WRITE_DEBOUNCE_MS = 1000;
       loadConfigFromJson(configJson, this.displayFatalError);
       const debouncedWrite = debounce(this.writeConfigFile, CONFIG_WRITE_DEBOUNCE_MS);
-      registerConfigChangeHandler( () => {
+      registerConfigChangeHandler(() => {
         void debouncedWrite();
       });
     } catch (err) {
@@ -681,14 +681,6 @@ export class MainWindow {
     this.browserWindow_?.webContents.send(commands.updateConfigStore, getConfigStore());
   };
 
-  sendCalibStoreUpdate = () => {
-    // TODO: If perf becomes an issue, look into turning off freezeImmutableStructures
-    if (this.browserWindow_?.isDestroyed()) {
-      return;
-    }
-    this.browserWindow_?.webContents.send(commands.updateCalibStore, getCalibStore());
-  };
-
   sendSettingsStoreUpdate = () => {
     // TODO: If perf becomes an issue, look into turning off freezeImmutableStructures
     if (this.browserWindow_?.isDestroyed()) {
@@ -702,7 +694,7 @@ export class MainWindow {
     shell.showItemInFolder(path);
   };
 
-  setFileToDeleteUponConnection = (filePath: string|null) => {
+  setFileToDeleteUponConnection = (filePath: string | null) => {
     this.deleteFileOnConnection_ = filePath;
   };
 
@@ -720,7 +712,7 @@ export class MainWindow {
       title: 'Pick New Firmware File',
       buttonLabel: 'Select New Firmware',
       defaultPath: FIRMWARE_PATH(),
-      filters: [{name: 'All Files', extensions: ['bin']}],
+      filters: [{ name: 'All Files', extensions: ['bin'] }],
     });
     if (!sourceBinInfo) {
       logger.error('Failed to open dialog window');
@@ -750,7 +742,7 @@ export class MainWindow {
     const saveConfigInfo = await dialog.showSaveDialog(this.browserWindow_, {
       title: 'Save Config Template File',
       buttonLabel: 'Save Config Template File',
-      filters: [{name: 'All Files', extensions: ['json']}],
+      filters: [{ name: 'All Files', extensions: ['json'] }],
     });
     if (saveConfigInfo.canceled) {
       logger.info('Calibration File Update Canceled');
@@ -773,7 +765,7 @@ export class MainWindow {
     const openConfigInfo = await this.showOpenDialog({
       title: 'Open Config Template File',
       buttonLabel: 'Open Config Template File',
-      filters: [{name: 'All Files', extensions: ['json']}],
+      filters: [{ name: 'All Files', extensions: ['json'] }],
     });
     if (!openConfigInfo) {
       logger.error('Failed to open dialog window');
@@ -845,7 +837,6 @@ export class MainWindow {
     ipcMain.handle(commands.sendConfigStoreValue, (_, key, value) => {
       setConfigStoreValue(key, value);
     });
-    ipcMain.handle(commands.updateCalibrationFile, (_) => { return updateCalibrationFile(this); });
     ipcMain.handle(commands.saveConfigTemplate, this.SaveConfigTemplate);
     ipcMain.handle(commands.loadConfigTemplate, this.LoadConfigTemplate);
     ipcMain.handle(commands.reuseLastConfigTemplate, this.ReuseLastConfigTemplate);
@@ -865,16 +856,14 @@ export class MainWindow {
       try {
         this.sendDataStoreUpdate();
         this.sendConfigStoreUpdate();
-        this.sendCalibStoreUpdate();
         this.sendSettingsStoreUpdate();
-      } catch(err) {
+      } catch (err) {
         logger.error(err);
       }
     });
     // Also, send an update on any change to the data store and config store
     registerChangeHandler(this.sendDataStoreUpdate);
     registerConfigChangeHandler(this.sendConfigStoreUpdate);
-    registerCalibChangeHandler(this.sendCalibStoreUpdate);
     registerSettingsChangeHandler(this.sendSettingsStoreUpdate);
     // TODO: (maybe) use diffs to minimize data sent through IPC, but not clear it's necessary
   };

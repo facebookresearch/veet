@@ -10,6 +10,7 @@
 import { Color4, Engine, Scene } from '@babylonjs/core';
 import { q } from 'quark-styles'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { Component, createRef } from 'react';
+import { logger } from '../../shared/Logger';
 
 
 type CanvasProps = {
@@ -41,7 +42,7 @@ export class Canvas extends Component<CanvasProps> {
 
   componentDidMount() {
     if (this.canvasRef.current == null) {
-        console.error('IMUScene: canvasRef is null');
+        logger.error('IMUScene: canvasRef is null');
       return;
     }
     this.engineSetup();

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import md5File from 'md5-file';
 import { ejectDrive } from './mainUtils';
 import { logger } from '../../shared/Logger';
+import { updateDeviceCalibrationFromDB } from './CalibManager';
 
 const DRIVE_SETTLE_TIME = 5 * 1000; // 5 seconds (seems slower on a mac)
 
@@ -73,11 +74,11 @@ export class Version {
   };
 
   toString() {
-    return `${this.major_}.${this.minor_}.${this.patch_}${this.extra_||''}`;
+    return `${this.major_}.${this.minor_}.${this.patch_}${this.extra_ || ''}`;
   }
 }
 
-export const parseVersion = (version: string|null|undefined): Version|null => {
+export const parseVersion = (version: string | null | undefined): Version | null => {
   if (!version || !validVersion(version)) {
     return null;
   }
@@ -137,7 +138,7 @@ const FirmwareManifestZ = z.object({
 });
 type FirmwareManifest = z.infer<typeof FirmwareManifestZ>;
 
-const loadFirmwareManifest = async (): Promise<FirmwareManifest|null> => {
+const loadFirmwareManifest = async (): Promise<FirmwareManifest | null> => {
   try {
     const manifestJSON = await fs.readJson(FIRMWARE_MANIFEST_PATH());
     if (!manifestJSON) {
@@ -257,6 +258,9 @@ export const updateFirmware = async (mainWindow: MainWindow, sourcePath: string,
       logger.error('MD5s do not match, aborting update');
       return;
     }
+
+    // Always update the calibration file on the drive when we update the firmware
+    await updateDeviceCalibrationFromDB(mainWindow);
 
     // We need to stop the drive watch to release any handles on the disk
     mainWindow.stopDriveWatch();

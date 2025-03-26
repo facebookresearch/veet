@@ -7,45 +7,8 @@
 
 import fs from 'fs-extra';
 import path from 'path';
-import {z} from 'zod';
 
-const calibrationFileSchema = z.object({
-  calib_fw_version: z.string(),
-  calib_version: z.string(),
-  calib_timestamp: z.string(),
-  deviceID: z.string(),
-  PHO: z.object({
-    F415: z.object({gain: z.number(), off: z.number()}),
-    F445: z.object({gain: z.number(), off: z.number()}),
-    F480: z.object({gain: z.number(), off: z.number()}),
-    F515: z.object({gain: z.number(), off: z.number()}),
-    F555: z.object({gain: z.number(), off: z.number()}),
-    F590: z.object({gain: z.number(), off: z.number()}),
-    F630: z.object({gain: z.number(), off: z.number()}),
-    F680: z.object({gain: z.number(), off: z.number()}),
-    F910: z.object({gain: z.number(), off: z.number()}),
-    Fclear: z.object({gain: z.number(), off: z.number()}),
-  }),
-  ALS: z.object({
-    Fuv: z.object({gain: z.number(), off: z.number()}),
-    Fpho: z.object({gain: z.number(), off: z.number()}),
-    Fir: z.object({gain: z.number(), off: z.number()}),
-  }),
-  LUX: z.object({
-    IR_PHO_REGION: z.tuple([z.number(), z.number(), z.number()]),
-    PHO_COEFF: z.tuple([z.number(), z.number(), z.number(), z.number()]),
-    IR_COEFF: z.tuple([z.number(), z.number(), z.number(), z.number()]),
-    DGF: z.tuple([z.number(), z.number(), z.number(), z.number()]),
-  }),
-  UVI: z.tuple([z.number(), z.number(), z.number(), z.number()]),
-});
-
-const calibrationDBSchema = z.object({
-  creation_timestamp: z.string(),
-  calibrations: z.record(z.string(), calibrationFileSchema),
-});
-
-type CalibrationDB = z.infer<typeof calibrationDBSchema>;
+import {calibrationDBSchema, calibrationFileSchema, type CalibrationDB} from '../packages/shared/CalibrationDB';
 
 type FailedFile = {
   file: string;
@@ -71,7 +34,7 @@ function ingestCalibrationFiles(pathToProjectRoot: string, pathToCalibrationFold
   const failedFiles: FailedFile[] = [];
 
   const calibrationDB: CalibrationDB = calibrationDBSchema.parse({
-    creation_timestamp: new Date().toString(),
+    creation_timestamp: new Date().toISOString(),
     calibrations: {},
   });
   const calibrationDBPath = path.join(pathToProjectRoot, 'firmware', 'calibrationDB.json');
@@ -80,9 +43,7 @@ function ingestCalibrationFiles(pathToProjectRoot: string, pathToCalibrationFold
   for (const file of calibrationFiles) {
     try {
       const filePath = path.join(pathToCalibrationFolder, file);
-      fs.readJSONSync(filePath);
-      const fileContents = fs.readFileSync(filePath, 'utf8');
-      const jsonObj = JSON.parse(fileContents);
+      const jsonObj = fs.readJSONSync(filePath);
       const parsed = calibrationFileSchema.safeParse(jsonObj);
       if (!parsed.success) {
         failedFiles.push({file, reason: parsed.error.message});

@@ -10,6 +10,7 @@
     "ATTRIBUTION.md",
     "firmware/*.bin",
     "firmware/manifest.json",
+    "firmware/calibrationDB.json",
     "documentation/*"
   ],
   "electronDownload": {

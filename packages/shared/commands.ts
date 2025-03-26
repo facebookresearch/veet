@@ -14,7 +14,6 @@ export const commands = {
   showFolder: 'showFolder',
   setCurrentTab: 'setCurrentTab',
   sendConfigStoreValue: 'sendConfigStoreValue',
-  updateCalibrationFile: 'updateCalibrationFile',
   saveConfigTemplate: 'saveConfigTemplate',
   loadConfigTemplate: 'loadConfigTemplate',
   reuseLastConfigTemplate: 'reuseLastConfigTemplate',
