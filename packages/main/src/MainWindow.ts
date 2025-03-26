@@ -36,11 +36,14 @@ RegisterMainLogger();
 
 const CONNECTION_RETRY_PERIOD = 3000;
 const DRIVE_RETRY_PERIOD = 1000;
-const BATTERY_POLL_PERIOD = 30 * 1000;
-const CLOCK_POLL_PERIOD = 5 * 1000;
 const SENSOR_POLL_WAIT_PERIOD = 10;
 const DEFAULT_RETRY_COUNT = 3;
 const DEFAULT_RETRY_DELAY = 500;
+
+const BATTERY_FAST_POLL_PERIOD = 3 * 1000;
+const CLOCK_FAST_POLL_PERIOD = 3 * 1000;
+const BATTERY_SLOW_POLL_PERIOD = 30 * 1000;
+const CLOCK_SLOW_POLL_PERIOD = 60 * 1000;
 
 const IMU_POLL_COMMAND = 'S0';
 const PHO_POLL_COMMAND = 'S1';
@@ -55,6 +58,28 @@ export const CALIBRATIONDB_PATH = () => path.join(FIRMWARE_PATH(), 'calibrationD
 export const DOCUMENTATION_PATH = () => path.join(ROOT_RESOURCE_PATH(), 'documentation');
 const VEET_MANUAL_PATH = () => path.join(DOCUMENTATION_PATH(), 'VEET 2.0 Device Manual.pdf');
 
+
+class PollingHelper {
+  timeoutHandler_: NodeJS.Timeout | null = null;
+  isPolling_ = true;
+  constructor(readonly pollingCallback: () => Promise<number>) {
+    this.runPolling();
+  }
+  public stop() {
+    this.isPolling_ = false;
+    this.timeoutHandler_ && clearTimeout(this.timeoutHandler_);
+    this.timeoutHandler_ = null;
+  }
+  private runPolling() {
+    void this.pollingCallback().then(nextDelay => {
+      if (nextDelay > 0 && this.isPolling_) {
+        this.timeoutHandler_ = setTimeout(() => this.runPolling(), nextDelay);
+      }
+    });
+  }
+}
+
+
 export class MainWindow {
   private serialManager_: SerialManager;
   private browserWindow_: BrowserWindow | undefined = undefined;
@@ -64,8 +89,8 @@ export class MainWindow {
   private streamRecorder_: StreamRecorder | undefined = undefined;
 
   // Intervals
-  private batteryInterval_: NodeJS.Timeout | null = null;
-  private clockInterval_: NodeJS.Timeout | null = null;
+  private batteryPoller_: PollingHelper | null = null;
+  private clockPoller_: PollingHelper | null = null;
   private connectionRetry_: NodeJS.Timeout | null = null;
   private driveRetry_: NodeJS.Timeout | null = null;
   private driveWatch_: FSWatcher | null = null;
@@ -206,29 +231,32 @@ export class MainWindow {
     return await this.serialManager_.runCommand(cmd);
   };
 
+
+
   startPolls = async () => {
-    if (this.batteryInterval_ == null) {
-      await this.pollBattery();
-      this.batteryInterval_ = setInterval(this.pollBattery, BATTERY_POLL_PERIOD);
+    if (this.batteryPoller_) {
+      this.batteryPoller_.stop();
     }
-    if (this.clockInterval_ == null) {
-      await this.pollClock();
-      this.clockInterval_ = setInterval(this.pollClock, CLOCK_POLL_PERIOD);
+    this.batteryPoller_ = new PollingHelper(this.pollBattery);
+
+
+    if (this.clockPoller_) {
+      this.clockPoller_.stop();
     }
+    this.clockPoller_ = new PollingHelper(this.pollClock);
+
+    // Start polling
     void this.startPollSensorThread(); // note that this doesn't need to be stopped as it sleeps itself. also don't await this one
   };
 
   stopPolls = () => {
-    if (this.batteryInterval_ != null) {
-      clearInterval(this.batteryInterval_);
-      this.batteryInterval_ = null;
-      setDatastoreValue('batteryPct', null);
-      setDatastoreValue('batteryMV', null);
-    }
-    if (this.clockInterval_ != null) {
-      clearInterval(this.clockInterval_);
-      this.clockInterval_ = null;
-    }
+    this.batteryPoller_?.stop();
+    this.batteryPoller_ = null;
+    this.clockPoller_?.stop();
+    this.clockPoller_ = null;
+
+    setDatastoreValue('batteryPct', null);
+    setDatastoreValue('batteryMV', null);
   };
 
   stopDriveWatch = () => {
@@ -307,11 +335,12 @@ export class MainWindow {
 
   };
 
-  pollBattery = async () => {
+  private pollBattery = async (): Promise<number> => {
     if (!this.isConnected_) {
       // We're disconnected. Shouldn't be called, so just return
-      return;
+      return BATTERY_FAST_POLL_PERIOD;
     }
+
     const batteryString = await this.runCommand(null, 'GB');
     if (batteryString) {
 
@@ -331,7 +360,7 @@ export class MainWindow {
       if (mv < 100 || mv > 6000) {
         // probably an invalid string
         logger.error(`Invalid battery response: "${batteryString}"`);
-        return;
+        return BATTERY_FAST_POLL_PERIOD;
       }
       // Map to a percentage. This is very rough, and things get wonky at the extremes, but we'll call anything over
       // 4.1V 100%, and anything less than 3.6V 1%, and linearly interpolate
@@ -339,7 +368,11 @@ export class MainWindow {
       setDatastoreValue('batteryPct', frac);
       setDatastoreValue('batteryMV', mv);
       logger.info(`${batteryString} -> ${(frac * 100).toFixed(1)}%`);
+
+      // Valid battery value, so poll at the slower rate
+      return BATTERY_SLOW_POLL_PERIOD;
     }
+    return BATTERY_FAST_POLL_PERIOD;
   };
 
   checkDriveSpace = async () => {
@@ -580,11 +613,12 @@ export class MainWindow {
     return await this.runCommand(null, `ST${curEpoch}`);
   };
 
-  pollClock = async () => {
+  private pollClock = async (): Promise<number> => {
     if (!this.isConnected_) {
       // We're disconnected. Shouldn't be called, so just return
-      return;
+      return CLOCK_FAST_POLL_PERIOD;
     }
+
     // Note that with the current serial connection, it will take an extra second or so
     // before we get the time back from the VEET, but we do not need precision timing
     const timeString = await this.runCommand(null, 'GT');
@@ -598,13 +632,18 @@ export class MainWindow {
       if (diff < -5) {
         logger.info(`VEET is ${-diff} seconds behind, syncing`);
         await this.syncClock();
+        return CLOCK_FAST_POLL_PERIOD;
       } else if (diff > 5) {
         logger.info(`VEET is ${diff} seconds ahead, syncing`);
         await this.syncClock();
+        return CLOCK_FAST_POLL_PERIOD;
       } else {
         logger.info('VEET is within 5 seconds of your PC');
+        // Normal clock time, so poll at the slower rate
+        return CLOCK_SLOW_POLL_PERIOD;
       }
     }
+    return CLOCK_SLOW_POLL_PERIOD;
   };
 
   startPollSensorThread = async () => {
