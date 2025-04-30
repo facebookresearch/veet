@@ -7,7 +7,8 @@
       "name": "Debug Main Process",
       "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/scripts/watch.js",
-      "autoAttachChildProcesses": true
+      "autoAttachChildProcesses": true,
+      "outputCapture": "std",
     }
   ]
 }
