@@ -22,7 +22,7 @@ function ingestCalibrationFiles(pathToProjectRoot: string, pathToCalibrationFold
   try {
     calibrationFiles = fs
       .readdirSync(pathToCalibrationFolder)
-      .filter(file => file.endsWith('.json'));
+      .filter(file => file.endsWith('.txt') || file.endsWith('.json'));
     console.log(`Found ${calibrationFiles.length} calibration files`);
   } catch (e) {
     console.error(`Error reading calibration files from ${pathToCalibrationFolder}: ${e}`);
