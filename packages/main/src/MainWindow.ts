@@ -28,7 +28,7 @@ import { checkFirmwareUpdate, checkHardwareVersion, updateFirmware } from './Ver
 import { logger } from '../../shared/Logger';
 import { RegisterMainLogger } from './MainLogger';
 import { StreamRecorder } from './StreamRecorder';
-import { inspectCalibrationStatus } from './CalibManager';
+import { lookupCalibrationDataForDevice } from './CalibManager';
 import { retryWrapper } from './mainUtils';
 
 RegisterMainLogger();
@@ -465,8 +465,10 @@ export class MainWindow {
     }
 
     // Do checks we need to do once we find the drive
-    await checkFirmwareUpdate(this);
-    await inspectCalibrationStatus(this);
+    const calibrationDataFoundForDevice = await lookupCalibrationDataForDevice(this);
+    if (calibrationDataFoundForDevice) {
+      await checkFirmwareUpdate(this);
+    }
     await this.analyzeSensorData();
     await this.loadConfig();
   };

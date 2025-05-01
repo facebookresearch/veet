@@ -122,10 +122,6 @@ export const checkHardwareVersion = async (mainWindow: MainWindow) => {
     }
     if (validVersion(firmwareVersion)) {
       setDatastoreValue('firmwareVersion', firmwareVersion);
-
-      if (validVersion(hardwareVersion)) {
-        await checkFirmwareUpdate(mainWindow);
-      }
     }
   }
 };
@@ -160,6 +156,8 @@ const loadFirmwareManifest = async (): Promise<FirmwareManifest | null> => {
 
 
 export const checkFirmwareUpdate = async (mainWindow: MainWindow) => {
+  await checkHardwareVersion(mainWindow)
+
   const firmwareVersionStr = getDataStore().firmwareVersion;
   const hardwareVersionStr = getDataStore().hardwareVersion;
   if (!firmwareVersionStr || !hardwareVersionStr) {

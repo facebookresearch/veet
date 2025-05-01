@@ -87,11 +87,11 @@ export const updateDeviceCalibrationFromDB = async (mainWindow: MainWindow) => {
   }
 };
 
-export const inspectCalibrationStatus = async (mainWindow: MainWindow) => {
+export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow): Promise<boolean> => {
   const drivePath = getDataStore().drivePath;
   if (!drivePath) {
     logger.info('Unable to find drive path, no calib loaded');
-    return;
+    return false;
   }
 
   // Load the existing calibration file
@@ -112,7 +112,7 @@ export const inspectCalibrationStatus = async (mainWindow: MainWindow) => {
   const deviceID = getDataStore().serialNumber;
   if (!deviceID) {
     logger.error('Unable to find deviceID, cannot update calibration');
-    return;
+    return false;
   }
 
   const dbCalibrationData = await calibrationDBManager.getCalibrationData(deviceID);
@@ -124,7 +124,7 @@ export const inspectCalibrationStatus = async (mainWindow: MainWindow) => {
         } does not match any known device for this version of VEETManager. Try updating the VEETManager or contact support at VEETSupport@meta.com`,
     });
     logger.info(`Serial number ${getDataStore().serialNumber} not found in calibration DB`);
-    return;
+    return false;
   }
 
   if (!currentCalibrationData) {
@@ -138,41 +138,17 @@ export const inspectCalibrationStatus = async (mainWindow: MainWindow) => {
       // Compare with data in the DB
       const currentCalibTime = new Date(currentCalibrationData.calib_timestamp).getTime();
       const dbCalibTime = new Date(dbCalibrationData.calib_timestamp).getTime();
-      if (currentCalibTime < dbCalibTime) {
+      if (!Number.isFinite(currentCalibTime) || currentCalibTime < dbCalibTime) {
         shouldUpdateCalibrationReason = 'There is updated calibration data available for your device.';
       }
     }
   }
-
-  if (shouldUpdateCalibrationReason) {
-    // Let's ask if we can update the calibration file
-    const response = await mainWindow.showMessageBox({
-      message: `We recommend updating your calibration settings: ${shouldUpdateCalibrationReason}`,
-      title: 'Update Calibration?',
-      buttons: ['Update Calibration', 'Cancel'],
-    });
-
-    if (response) {
-      switch (response.response) {
-        case 0: { // Proceed
-          logger.info('User chose to update calibration');
-          await updateDeviceCalibrationFromDB(mainWindow);
-          logger.info('Running Reset command');
-          const REResult = await mainWindow.runCommand(null, 'RE');
-          logger.info('Complete, calibration updated: ' + REResult);
-          return;
-        }
-        default:
-        case 1: // Cancel
-          logger.info('User chose not to update calibration');
-          return;
-      }
-    }
-  } else {
-    logger.info('Calibration file is up to date.');
-    return;
+  if (shouldUpdateCalibrationReason){
+    logger.info(`${shouldUpdateCalibrationReason}`);
   }
 
+  logger.info(`Found correct calibration file`);
+  return true;
 };
 
 // Not sure if we still want this, but leaving it here for now
@@ -210,7 +186,7 @@ export const updateCalibrationFromFile = async (mainWindow: MainWindow) => {
 
     // Reload the calibration file after updating
     logger.info('Reloading calibration file after copy.');
-    await inspectCalibrationStatus(mainWindow);
+    await lookupCalibrationDataForDevice(mainWindow);
 
     // Resetting VEET to reload calibration file
     logger.info('Resetting VEET to reload calibration.');
