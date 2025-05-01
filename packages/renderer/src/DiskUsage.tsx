@@ -21,7 +21,6 @@ export const DiskUsage = () => {
   const diskTotalMB = driveSpaceTotal / (1024*1024);
   const diskPct = driveSpaceTotal ? (diskUsage / driveSpaceTotal) * 100 : 0;
   const firmwareVersion = useStoreData('firmwareVersion') || 'Unknown';
-  const hardwareVersion = useStoreData('hardwareVersion') || 'Unknown';
   const serialNumber = useStoreData('serialNumber') || 'Unknown';
   let diskUsageColor = '#00b000'; // green
   if (diskPct >= 70 ) {
@@ -40,7 +39,7 @@ export const DiskUsage = () => {
       <div data-classes='fs-24'>
         Disk Usage: {diskUsageMB.toLocaleString('en-US', {maximumFractionDigits: 1})}MB / {diskTotalMB.toLocaleString('en-US', {maximumFractionDigits: 1})}MB - <span data-classes={`m-l-7 c-${diskUsageColor}-fg`}>{diskPct.toFixed(1)}%</span>
       </div>
-      <div data-classes={subHeadingFont}>Hardware Version: {hardwareVersion}  |   Firmware Version: {firmwareVersion} | Serial: {serialNumber}</div>
+      <div data-classes={subHeadingFont}>Firmware Version: {firmwareVersion} | Serial: {serialNumber}</div>
     </div>
   );
 };
