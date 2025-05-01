@@ -667,7 +667,11 @@ export class MainWindow {
               break;
             }
             case TAB_NAMES.TOF: {
-              const tofStr = await this.runCommand(null, TOF_POLL_COMMAND);
+              const promiseArr = await Promise.all([
+                this.runCommand(null, TOF_POLL_COMMAND),
+                new Promise(resolve => setTimeout(resolve, 500))
+              ]);
+              const tofStr = promiseArr[0];
               if (tofStr && !tofStr.startsWith('#Err')) {
                 setDatastoreValue('tofData', tofStr);
                 this.streamRecorder_?.WriteIfRecording(tofStr);
