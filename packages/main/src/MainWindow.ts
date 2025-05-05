@@ -645,7 +645,8 @@ export class MainWindow {
         return CLOCK_SLOW_POLL_PERIOD;
       }
     }
-    return CLOCK_SLOW_POLL_PERIOD;
+    logger.error('Got invalid response from GT command, trying again');
+    return CLOCK_FAST_POLL_PERIOD;
   };
 
   startPollSensorThread = async () => {
