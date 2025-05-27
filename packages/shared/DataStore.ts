@@ -13,30 +13,30 @@ import { logger } from './Logger';
 
 
 export interface VEETDataStore {
-  hardwareVersion: string|null,
-  firmwareVersion: string|null,
-  connectionPort: string|null;
+  hardwareVersion: string | null,
+  firmwareVersion: string | null,
+  connectionPort: string | null;
   serialLog: string[];
-  batteryPct: number|null; // from 0-1, null means dunno
-  batteryMV: number|null;
-  deviceSide: string|null;
-  serialNumber: string|null;
-  timeOnVeet: number|null,
+  batteryPct: number | null; // from 0-1, null means dunno
+  batteryMV: number | null;
+  deviceSide: string | null;
+  serialNumber: string | null;
+  veetTimeOffset: number | null,
   commandInFlight: boolean;
   driveFound: boolean;
-  drivePath: string|null;
-  sensorDataFilePath: string|null;
+  drivePath: string | null;
+  sensorDataFilePath: string | null;
   driveSpaceAvailable: number;
   driveSpaceTotal: number;
   sensorDataFileSize: number;
-  tofData: string|null,
-  phoData: string|null,
-  imuData: string|null,
-  alsData: string|null,
+  tofData: string | null,
+  phoData: string | null,
+  imuData: string | null,
+  alsData: string | null,
   recordingStream: boolean;
-  modalMessage: string|null;
+  modalMessage: string | null;
   windowSize: [number, number];
-  configTemplate: string|null
+  configTemplate: string | null
 }
 
 type ChangeHandler = (data: Readonly<VEETDataStore>) => void;
@@ -50,7 +50,7 @@ const initialData: VEETDataStore = deepFreeze({
   batteryMV: null,
   deviceSide: null,
   serialNumber: null,
-  timeOnVeet: null,
+  veetTimeOffset: null,
   commandInFlight: false,
   driveFound: false,
   drivePath: null,
@@ -75,7 +75,7 @@ export function resetDataStore() {
 }
 
 const gChangeHandlers: ChangeHandler[] = [];
-const gKeyedChangeHandlers: Partial<Record<keyof(VEETDataStore), ChangeHandler[]>> = {};
+const gKeyedChangeHandlers: Partial<Record<keyof (VEETDataStore), ChangeHandler[]>> = {};
 
 function triggerChangeHandlers(oldData: VEETDataStore) {
   const changeHandlers = gChangeHandlers.slice();
@@ -107,13 +107,13 @@ export function unregisterChangeHandler(handler: ChangeHandler) {
   }
 }
 
-export function registerKeyedChangeHandler(handler: ChangeHandler, key: keyof(VEETDataStore)) {
+export function registerKeyedChangeHandler(handler: ChangeHandler, key: keyof (VEETDataStore)) {
   gKeyedChangeHandlers[key] = gKeyedChangeHandlers[key] || [];
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   gKeyedChangeHandlers[key]!.push(handler); // unclear why typescript wants this assertion given the above line
 }
 
-export function unregisterKeyedChangeHandler(handler: ChangeHandler, key: keyof(VEETDataStore)) {
+export function unregisterKeyedChangeHandler(handler: ChangeHandler, key: keyof (VEETDataStore)) {
   const changeHandlers = gKeyedChangeHandlers[key];
   if (!changeHandlers || changeHandlers.length == 0) {
     return;
@@ -139,7 +139,7 @@ function updateData(newData: VEETDataStore) {
 
 // While simply-immutable supports deep pathnames, type safety gets complicated and we don't need deep paths
 // So, limiting to a single key, but that key is properly enforced
-export function useStoreData<KeyString extends keyof(VEETDataStore)>(key: KeyString): VEETDataStore[KeyString] {
+export function useStoreData<KeyString extends keyof (VEETDataStore)>(key: KeyString): VEETDataStore[KeyString] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [state, setState] = useState(gStoreData[key] as any);
 
@@ -159,7 +159,7 @@ export function useStoreData<KeyString extends keyof(VEETDataStore)>(key: KeyStr
   return state;
 }
 
-export function setDatastoreValue<KeyString extends keyof(VEETDataStore)>(key: KeyString, value: VEETDataStore[KeyString]) {
+export function setDatastoreValue<KeyString extends keyof (VEETDataStore)>(key: KeyString, value: VEETDataStore[KeyString]) {
   if (isRenderer()) {
     logger.error('Can not setDatastoreValue in renderer ');
     return;

@@ -628,15 +628,22 @@ export class MainWindow {
       // Parse from expected format "Time(s): XXXXXXX"
       const prefix = 'Time(s): '.length;
       const veetEpoch = parseInt(timeString.slice(prefix));
-      setDatastoreValue('timeOnVeet', veetEpoch);
-      const curEpoch = Math.round(Date.now() * 0.001); // Date.now() is ms, not secs
-      const diff = veetEpoch - curEpoch;
-      if (diff < -5) {
-        logger.info(`VEET is ${-diff} seconds behind, syncing`);
+      // Make sure veetEpoch is a valid number and greater than 0
+      if (isNaN(veetEpoch) || veetEpoch <= 0) {
+        logger.error(`Got invalid response from GT command ${timeString}, trying again`);
+        return CLOCK_FAST_POLL_PERIOD;
+      }
+      // VEET time is in seconds, Date.now is in ms, so subtract in ms, then round to seconds
+      const now = Date.now();
+      const veetTimeOffset = Math.round((veetEpoch * 1000 - now) * 0.001); // in seconds
+      logger.info('VEET time: ' + veetEpoch + ', PC time: ' + now + ', diff: ' + (veetEpoch * 1000 - now) + ', offset: ' + veetTimeOffset);
+      setDatastoreValue('veetTimeOffset', veetTimeOffset);
+      if (veetTimeOffset < -5) {
+        logger.info(`VEET is ${-veetTimeOffset} seconds behind, syncing`);
         await this.syncClock();
         return CLOCK_FAST_POLL_PERIOD;
-      } else if (diff > 5) {
-        logger.info(`VEET is ${diff} seconds ahead, syncing`);
+      } else if (veetTimeOffset > 5) {
+        logger.info(`VEET is ${veetTimeOffset} seconds ahead, syncing`);
         await this.syncClock();
         return CLOCK_FAST_POLL_PERIOD;
       } else {

@@ -8,12 +8,12 @@
 /** @jsxRuntime classic */
 /** @jsx q */
 import { q } from 'quark-styles'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { ReactNode} from 'react';
-import { useRef, useState } from 'react';
-import type { ITimezoneOption} from 'react-timezone-select';
+import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ITimezoneOption } from 'react-timezone-select';
 import { useTimezoneSelect } from 'react-timezone-select';
 import { useStoreData } from '../../shared/DataStore';
-import type { ConfigStore} from '../../shared/ConfigStore';
+import type { ConfigStore } from '../../shared/ConfigStore';
 import { useConfigStoreData } from '../../shared/ConfigStore';
 import { editorFont, Row, Label, buttonBorder } from './styles';
 import { Button } from './Button';
@@ -119,7 +119,7 @@ const TextEditor = ({
 };
 
 const TimezonePicker = () => {
-  const curVal:string = useConfigStoreData('timeZoneName');
+  const curVal: string = useConfigStoreData('timeZoneName');
   const onChange = (timeZone: ITimezoneOption) => {
     const newVal: [string, number] = [timeZone.value, timeZone.offset || 0];
     window.bridgeApi.sendConfigStoreValue('timeZoneOffset', newVal[1]);
@@ -139,21 +139,36 @@ const TimezonePicker = () => {
 };
 
 const TimeDisplay = () => {
-  const timeOnVeet = useStoreData('timeOnVeet');
+  // Once a second, update the time
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+
+  // Use the time offset from the veet to calculate the time on the veet
+  const timeOffset = useStoreData('veetTimeOffset');
   const timeZoneName = useConfigStoreData('timeZoneName');
-  if (!timeOnVeet) {
+  if (timeOffset === null) {
     return <div data-classes={editorFont}>Unknown</div>;
   }
-  const date = new Date(timeOnVeet * 1000); // expected in ms, not s
-  const pcDate = new Date();
-  const timeDiffMS = Math.abs(date.getTime() - pcDate.getTime());
-  // Account for various delays in serial connection, processing, etc.
-  // If it's more than 20 seconds off, something is wrong
+
+  // Also display if the veet is in sync or not
   let syncStatus = <div data-classes='m-l-10 c-#0F0-fg'> - In Sync</div>;
-  if (timeDiffMS > 20 * 1000) {
+  if (Math.abs(timeOffset) > 5) {
     syncStatus = <div data-classes='c-#F00-fg'>Out Of Sync</div>;
   }
-  const dateString = date.toLocaleString(undefined, {timeZone: timeZoneName});
+
+  const timeOnVeet = time.getTime() + timeOffset * 1000; // expected in ms, not s
+
+  const date = new Date(timeOnVeet); // expected in ms, not s
+  const dateString = date.toLocaleString(undefined, { timeZone: timeZoneName });
+
   return <div data-classes={editorFont + ' d-f flxd-r'}>{dateString}{syncStatus}</div>;
 };
 
@@ -163,7 +178,7 @@ export const ConfigEditor = () => {
   const hasTemplate = configTemplate !== null && configTemplate?.length > 0;
   const driveConnected = Boolean(useStoreData('drivePath'));
 
-  let overlay:ReactNode = '';
+  let overlay: ReactNode = '';
   if (!driveConnected) {
     overlay = <div data-classes='c-#CCCCCCCC-bg fullSize pos-a' />;
   }
@@ -180,21 +195,21 @@ export const ConfigEditor = () => {
       </Row>
       <Row>
         <Label>Time Zone Offset</Label>
-        <TimezonePicker/>
+        <TimezonePicker />
       </Row>
       <Row>
-        <Label/>
+        <Label />
         <div data-classes="flxg-1">Note: Time zone setting does not change actual clock times. Clock times are in UTC.</div>
       </Row>
       <Row>
         <Label>Time on VEET</Label>
-        <TimeDisplay/>
+        <TimeDisplay />
       </Row>
       <Row>
-        <Label/>
-        <div data-classes="flxg-1">Note: Time on VEET is auto-synchronized with this computer's clock</div>
+        <Label />
+        <div data-classes="flxg-1">Note: Time on VEET is auto-synchronized with this computer's clock, and in UTC in the data.</div>
       </Row>
-      <hr data-classes='m-y-40'/>
+      <hr data-classes='m-y-40' />
       <Row>
         <Label>IMU Interval (seconds)</Label>
         <IntervalEditor dataKey='imuInterval' />
