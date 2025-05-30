@@ -80,7 +80,7 @@ export const updateDeviceCalibrationFromDB = async (mainWindow: MainWindow) => {
 
   // Write the calibration data to the calibration file on device
   try {
-    await fsPromises.writeFile(calibPath, JSON.stringify(dbCalibrationData));
+    await fsPromises.writeFile(calibPath, JSON.stringify(dbCalibrationData, null, 2));
     logger.info(`Updated calibration file at ${calibPath}`);
   } catch (err) {
     logger.error(err);
