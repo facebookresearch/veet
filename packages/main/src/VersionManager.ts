@@ -233,6 +233,13 @@ export const updateFirmware = async (mainWindow: MainWindow, sourcePath: string,
     logger.error(`Invalid source firmware path: ${sourcePath}`);
     return;
   }
+
+  const voltageCheckPassed = await mainWindow.checkMinimumVoltageForOperation('firmware update');
+  if (!voltageCheckPassed) {
+    logger.info('Firmware update aborted due to insufficient battery voltage');
+    return;
+  }
+
   setDatastoreValue('modalMessage', 'Updating Firmware...');
   try {
     // first, check the expected md5 if provided

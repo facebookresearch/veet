@@ -76,6 +76,13 @@ export const updateDeviceCalibrationFromDB = async (mainWindow: MainWindow) => {
     logger.info('Unable to find drive path, can\'t write calibration file');
     return;
   }
+
+  const voltageCheckPassed = await mainWindow.checkMinimumVoltageForOperation('calibration file update');
+  if (!voltageCheckPassed) {
+    logger.info('Calibration file update aborted due to insufficient battery voltage');
+    return;
+  }
+
   const calibPath = path.join(drivePath, CALIB_FILENAME);
 
   // Write the calibration data to the calibration file on device

@@ -17,8 +17,8 @@ import * as path from 'path';
 import * as fsPromises from 'fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { TAB_TYPE } from '../../shared/constants';
-import { CONFIG_FILENAME, DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, SENSOR_DATA_FILENAME, TAB_NAMES, VEET_DRIVE_DESCRIPTION } from '../../shared/constants';
-import { getConfigStore, getIntervalConfig, loadConfigFromJson, loadIntervalConfigFromJson, registerConfigChangeHandler, setConfigStoreValue } from '../../shared/ConfigStore';
+import { BATTERY_MAX_VOLTAGE_MV, BATTERY_MIN_VOLTAGE_MV, CONFIG_FILENAME, DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, MIN_VOLTAGE_FOR_OPERATIONS_MV, SENSOR_DATA_FILENAME, TAB_NAMES, VEET_DRIVE_DESCRIPTION } from '../../shared/constants';
+import { getConfigStore, getIntervalConfig, loadConfigFromJson, loadIntervalConfigFromJson, registerConfigChangeHandler, setConfigStoreValue, updateConfigStore } from '../../shared/ConfigStore';
 import { getSettingsStore, registerSettingsChangeHandler, setSettingsStoreValue } from '../../shared/SettingsStore';
 import { SetupCustomMenus } from './Menu';
 import { debounce } from 'ts-debounce';
@@ -364,7 +364,7 @@ export class MainWindow {
       }
       // Map to a percentage. This is very rough, and things get wonky at the extremes, but we'll call anything over
       // 4.1V 100%, and anything less than 3.6V 1%, and linearly interpolate
-      const frac = Math.max(invLerpClamped(3600, 4100, mv), 0.01);
+      const frac = Math.max(invLerpClamped(BATTERY_MIN_VOLTAGE_MV, BATTERY_MAX_VOLTAGE_MV, mv), 0.01);
       setDatastoreValue('batteryPct', frac);
       setDatastoreValue('batteryMV', mv);
       logger.info(`${batteryString} -> ${(frac * 100).toFixed(1)}%`);
@@ -385,6 +385,65 @@ export class MainWindow {
     logger.info(`DiskUsage: ${(diskInfo.available / (1024 * 1024)).toFixed(2)}MB / ${(diskInfo.total / (1024 * 1024)).toFixed(2)}MB`);
     setDatastoreValue('driveSpaceAvailable', diskInfo.available);
     setDatastoreValue('driveSpaceTotal', diskInfo.total);
+  };
+
+  checkMinimumVoltage = async (minVoltageRequired: number, operationType: string): Promise<boolean> => {
+    await retryWrapper(async () => {
+      if (!this.voltageCheckInProgress) {
+        return true;
+      }
+      logger.info(`Voltage check already in progress, waiting for ${operationType}...`);
+      return false;
+    }, DEFAULT_RETRY_COUNT, DEFAULT_RETRY_DELAY);
+
+    this.voltageCheckInProgress = true;
+
+    try {
+      const currentVoltage = getDataStore().batteryMV;
+      logger.info(`Checking minimum voltage for ${operationType}: ${currentVoltage}mV >= ${minVoltageRequired}mV`);
+
+      if (currentVoltage === null) {
+        await this.pollBattery();
+        const updatedVoltage = getDataStore().batteryMV;
+
+        if (updatedVoltage === null) {
+          logger.error(`Unable to read battery voltage for ${operationType}`);
+          void this.showMessageBox({
+            message: 'Unable to read battery voltage. Please ensure the device is connected and try again.',
+            title: 'Battery Check Failed',
+            buttons: ['OK'],
+          });
+          return false;
+        }
+      }
+
+      const voltage = getDataStore().batteryMV || 0;
+
+      if (voltage < minVoltageRequired) {
+        const voltageInVolts = (voltage / 1000).toFixed(2);
+        const requiredVoltageInVolts = (minVoltageRequired / 1000).toFixed(2);
+        const batteryPct = getDataStore().batteryPct;
+        const batteryPctStr = batteryPct ? `${Math.round(batteryPct * 100)}%` : 'unknown';
+
+        logger.warn(`Voltage too low for ${operationType}: ${voltage}mV (${voltageInVolts}V) < ${minVoltageRequired}mV (${requiredVoltageInVolts}V)`);
+
+        void this.showMessageBox({
+          message: `Battery voltage is too low for ${operationType}.\n\nCurrent: ${voltageInVolts}V (${batteryPctStr})\nRequired: ${requiredVoltageInVolts}V (20%) \n\nPlease plug the device into wall power and charge for longer before attempting this operation.`,
+          title: 'Battery Too Low',
+          buttons: ['OK'],
+        });
+        return false;
+      }
+
+      logger.info(`Voltage check passed for ${operationType}: ${voltage}mV >= ${minVoltageRequired}mV`);
+      return true;
+    } finally {
+      this.voltageCheckInProgress = false;
+    }
+  };
+
+  checkMinimumVoltageForOperation = async (operationType: string): Promise<boolean> => {
+    return await this.checkMinimumVoltage(MIN_VOLTAGE_FOR_OPERATIONS_MV, operationType);
   };
 
   findDrive = async () => {
@@ -570,24 +629,51 @@ export class MainWindow {
     }
   };
 
+  private lastSavedConfig: any = null;
+
   writeConfigFile = async () => {
     const drivePath = getDataStore().drivePath;
     if (!drivePath) {
       logger.error('Unable to write config file, no drive path found');
       return;
     }
+
+    const voltageCheckPassed = await this.checkMinimumVoltageForOperation('config file write');
+    if (!voltageCheckPassed) {
+      logger.info('Config file write aborted due to insufficient battery voltage');
+      logger.info('Instantly reverting config to last saved values...');
+      this.configRevertInProgress = true;
+      try {
+        if (this.lastSavedConfig) {
+          updateConfigStore(this.lastSavedConfig);
+          logger.info('Config instantly reverted to last saved values');
+        } else {
+          await this.loadConfig();
+          logger.info('Config reverted by reloading from device');
+        }
+      } finally {
+        this.configRevertInProgress = false;
+      }
+      return;
+    }
+
     const configPath = path.join(drivePath, CONFIG_FILENAME);
     const configData = getConfigStore();
 
     try {
       const configStr = JSON.stringify(configData, null, 2);
       await fsPromises.writeFile(configPath, configStr);
+      this.lastSavedConfig = { ...configData };
       logger.info('Config written to ' + configPath);
       logger.info(configStr);
     } catch (err) {
       logger.info('Error writing config file: ' + err);
     }
   };
+
+  private configChangeHandlerRegistered = false;
+  private voltageCheckInProgress = false;
+  private configRevertInProgress = false;
 
   loadConfig = async () => {
     logger.info('Loading config file');
@@ -599,12 +685,23 @@ export class MainWindow {
     try {
       const configPath = path.join(drivePath, CONFIG_FILENAME);
       const configJson = await fsPromises.readFile(configPath, { encoding: 'utf8' });
-      const CONFIG_WRITE_DEBOUNCE_MS = 1000;
       loadConfigFromJson(configJson, this.displayFatalError);
-      const debouncedWrite = debounce(this.writeConfigFile, CONFIG_WRITE_DEBOUNCE_MS);
-      registerConfigChangeHandler(() => {
-        void debouncedWrite();
-      });
+
+      this.lastSavedConfig = { ...getConfigStore() };
+      logger.info('Stored loaded config as last known good config');
+
+      if (!this.configChangeHandlerRegistered) {
+        const CONFIG_WRITE_DEBOUNCE_MS = 1000;
+        const debouncedWrite = debounce(this.writeConfigFile, CONFIG_WRITE_DEBOUNCE_MS);
+        registerConfigChangeHandler(() => {
+          if (this.configRevertInProgress) {
+            logger.info('Skipping config write during config revert');
+            return;
+          }
+          void debouncedWrite();
+        });
+        this.configChangeHandlerRegistered = true;
+      }
     } catch (err) {
       logger.error(err);
     }
