@@ -12,6 +12,8 @@ import { logger } from '../../shared/Logger';
 import { CALIB_FILENAME } from '../../shared/constants';
 import { CALIBRATIONDB_PATH, type MainWindow } from './MainWindow';
 import { z } from 'zod';
+import md5File from 'md5-file';
+import crypto from 'crypto';
 
 import { calibrationDBSchema, type CalibrationDB } from '../../shared/CalibrationDB';
 
@@ -84,17 +86,33 @@ export const updateDeviceCalibrationFromDB = async (mainWindow: MainWindow) => {
   }
 
   const calibPath = path.join(drivePath, CALIB_FILENAME);
+  const calibrationContent = JSON.stringify(dbCalibrationData, null, 2);
 
-  // Write the calibration data to the calibration file on device
   try {
-    await fsPromises.writeFile(calibPath, JSON.stringify(dbCalibrationData, null, 2));
+    const expectedHash = crypto.createHash('md5').update(calibrationContent).digest('hex');
+    logger.info('Expected calibration file MD5: ' + expectedHash);
+
+    await fsPromises.writeFile(calibPath, calibrationContent);
     logger.info(`Updated calibration file at ${calibPath}`);
+
+    await new Promise(r => setTimeout(r, 2500));
+
+    const actualHash = await md5File(calibPath);
+    logger.info('Actual calibration file MD5: ' + actualHash);
+
+    if (expectedHash !== actualHash) {
+      logger.error('Calibration file hash mismatch! Write may have failed.');
+      logger.error(`Expected: ${expectedHash}, Actual: ${actualHash}`);
+      return;
+    }
+
+    logger.info('Calibration file hash verified - write successful');
   } catch (err) {
-    logger.error(err);
+    logger.error('Error writing calibration file:', err);
   }
 };
 
-export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow): Promise<boolean> => {
+export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow, showDialog: boolean = false): Promise<boolean> => {
   const drivePath = getDataStore().drivePath;
   if (!drivePath) {
     logger.info('Unable to find drive path, no calib loaded');
@@ -150,8 +168,35 @@ export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow): Pr
       }
     }
   }
-  if (shouldUpdateCalibrationReason){
-    logger.info(`${shouldUpdateCalibrationReason}`);
+
+  if (shouldUpdateCalibrationReason) {
+    if (showDialog) {
+      const response = await mainWindow.showMessageBox({
+        message: `We recommend updating your calibration settings: ${shouldUpdateCalibrationReason}`,
+        title: 'Update Calibration?',
+        buttons: ['Update Calibration', 'Cancel'],
+      });
+
+      if (response) {
+        switch (response.response) {
+          case 0: {
+            logger.info('User chose to update calibration');
+            await updateDeviceCalibrationFromDB(mainWindow);
+
+            logger.info('Running Reset command');
+            const REResult = await mainWindow.runCommand(null, 'RE');
+            logger.info('Complete, calibration updated: ' + REResult);
+            return true;
+          }
+          default:
+          case 1:
+            logger.info('User chose not to update calibration');
+            return true;
+        }
+      }
+    } else {
+      logger.info(`${shouldUpdateCalibrationReason}`);
+    }
   }
 
   logger.info(`Found correct calibration file`);

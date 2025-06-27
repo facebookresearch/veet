@@ -523,6 +523,7 @@ export class MainWindow {
       this.deleteFileOnConnection_ = null;
     }
 
+
     // Do checks we need to do once we find the drive
     const calibrationDataFoundForDevice = await lookupCalibrationDataForDevice(this);
     if (calibrationDataFoundForDevice) {
@@ -776,7 +777,7 @@ export class MainWindow {
             case TAB_NAMES.TOF: {
               const promiseArr = await Promise.all([
                 this.runCommand(null, TOF_POLL_COMMAND),
-                new Promise(resolve => setTimeout(resolve, 500))
+                new Promise(resolve => setTimeout(resolve, 500)),
               ]);
               const tofStr = promiseArr[0];
               if (tofStr && !tofStr.startsWith('#Err')) {

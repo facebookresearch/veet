@@ -13,7 +13,7 @@ import { z } from 'zod';
 import md5File from 'md5-file';
 import { ejectDrive } from './mainUtils';
 import { logger } from '../../shared/Logger';
-import { updateDeviceCalibrationFromDB } from './CalibManager';
+import { updateDeviceCalibrationFromDB, lookupCalibrationDataForDevice } from './CalibManager';
 
 const DRIVE_SETTLE_TIME = 5 * 1000; // 5 seconds (seems slower on a mac)
 
@@ -156,7 +156,7 @@ const loadFirmwareManifest = async (): Promise<FirmwareManifest | null> => {
 
 
 export const checkFirmwareUpdate = async (mainWindow: MainWindow) => {
-  await checkHardwareVersion(mainWindow)
+  await checkHardwareVersion(mainWindow);
 
   const firmwareVersionStr = getDataStore().firmwareVersion;
   const hardwareVersionStr = getDataStore().hardwareVersion;
@@ -191,6 +191,12 @@ export const checkFirmwareUpdate = async (mainWindow: MainWindow) => {
   // If on manifest firmware is not newer than on device, no point in updating
   if (!manifestVersion.isNewerThan(firmwareVersion)) {
     logger.info(`Manifest version ${manifestVersion} is not newer than firmware version ${firmwareVersion}. Aborting autoupdate.`);
+
+    // If firmware versions are equal, check for calibration updates
+    if (manifestVersion.isEqualTo(firmwareVersion)) {
+      logger.info('Firmware versions are equal, checking for calibration updates');
+      await checkCalibrationUpdate(mainWindow);
+    }
     return;
   }
 
@@ -221,6 +227,10 @@ export const checkFirmwareUpdate = async (mainWindow: MainWindow) => {
   }
 };
 
+
+const checkCalibrationUpdate = async (mainWindow: MainWindow) => {
+  await lookupCalibrationDataForDevice(mainWindow, true);
+};
 
 export const updateFirmware = async (mainWindow: MainWindow, sourcePath: string, expectedMD5?: string) => {
   const drivePath = getDataStore().drivePath;
