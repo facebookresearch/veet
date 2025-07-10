@@ -24,6 +24,30 @@ const calibrationFilePartialSchema = z.object({
 
 type CalibrationFile = z.infer<typeof calibrationFilePartialSchema>;
 
+
+const checkIfCalibrationUpdateNeeded = (
+  currentCalibrationData: CalibrationFile | null,
+  dbCalibrationData: CalibrationFile,
+  deviceID: string,
+): { shouldUpdate: boolean; reason: string } => {
+  if (!currentCalibrationData) {
+    return { shouldUpdate: true, reason: 'The calibration file on device is missing or corrupted.' };
+  }
+
+  if (currentCalibrationData.deviceID !== deviceID) {
+    return { shouldUpdate: true, reason: 'The calibration file on device is different than expected.' };
+  }
+
+  const currentCalibTime = new Date(currentCalibrationData.calib_timestamp).getTime();
+  const dbCalibTime = new Date(dbCalibrationData.calib_timestamp).getTime();
+
+  if (!Number.isFinite(currentCalibTime) || currentCalibTime < dbCalibTime) {
+    return { shouldUpdate: true, reason: 'There is updated calibration data available for your device.' };
+  }
+
+  return { shouldUpdate: false, reason: '' };
+};
+
 /**
  * Singleton class for managing calibration database
  */
@@ -76,6 +100,21 @@ export const updateDeviceCalibrationFromDB = async (mainWindow: MainWindow) => {
   const drivePath = getDataStore().drivePath;
   if (!drivePath) {
     logger.info('Unable to find drive path, can\'t write calibration file');
+    return;
+  }
+
+  let currentCalibrationData: CalibrationFile | null = null;
+  try {
+    const calibPath = path.join(drivePath, CALIB_FILENAME);
+    const calibJson = await fsPromises.readFile(calibPath, { encoding: 'utf8' });
+    currentCalibrationData = calibrationFilePartialSchema.parse(JSON.parse(calibJson));
+  } catch (err) {
+    logger.info('Could not read existing calibration file, proceeding with update');
+  }
+
+  const updateCheck = checkIfCalibrationUpdateNeeded(currentCalibrationData, dbCalibrationData, deviceID);
+  if (!updateCheck.shouldUpdate) {
+    logger.info('Device calibration file is up to date, skipping update');
     return;
   }
 
@@ -152,21 +191,9 @@ export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow, sho
     return false;
   }
 
-  if (!currentCalibrationData) {
-    // We somehow failed to load an existing calibration file, it might be missing or corrupted. Let's try to update it.
-    shouldUpdateCalibrationReason = 'The calibration file on device is missing or corrupted.';
-  } else {
-    // Check calibration data vs device info
-    if (currentCalibrationData.deviceID !== deviceID) {
-      shouldUpdateCalibrationReason = 'The calibration file on device is different than expected.';
-    } else {
-      // Compare with data in the DB
-      const currentCalibTime = new Date(currentCalibrationData.calib_timestamp).getTime();
-      const dbCalibTime = new Date(dbCalibrationData.calib_timestamp).getTime();
-      if (!Number.isFinite(currentCalibTime) || currentCalibTime < dbCalibTime) {
-        shouldUpdateCalibrationReason = 'There is updated calibration data available for your device.';
-      }
-    }
+  const updateCheck = checkIfCalibrationUpdateNeeded(currentCalibrationData, dbCalibrationData, deviceID);
+  if (updateCheck.shouldUpdate) {
+    shouldUpdateCalibrationReason = updateCheck.reason;
   }
 
   if (shouldUpdateCalibrationReason) {
