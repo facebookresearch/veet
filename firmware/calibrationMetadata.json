@@ -1,0 +1,10 @@
+{
+  "totalDevices": 318,
+  "creationTimestamp": "2025-07-17T17:54:06.484Z",
+  "oldestCalibration": "2025-02-26T00:11:24.000Z",
+  "newestCalibration": "2025-07-15T20:33:18.000Z",
+  "deviceIdRange": {
+    "min": "24100207",
+    "max": "25070557"
+  }
+}

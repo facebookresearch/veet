@@ -10,6 +10,60 @@ import path from 'path';
 
 import {calibrationDBSchema, calibrationFileSchema, type CalibrationDB} from '../packages/shared/CalibrationDB';
 
+interface CalibrationMetadata {
+  totalDevices: number;
+  creationTimestamp: string;
+  oldestCalibration: string;
+  newestCalibration: string;
+  deviceIdRange: {
+    min: string;
+    max: string;
+  };
+}
+
+function generateCalibrationMetadata(calibrationDB: CalibrationDB): CalibrationMetadata {
+  const deviceIDs = Object.keys(calibrationDB.calibrations);
+
+  let oldestDate = new Date();
+  let newestDate = new Date(0);
+
+  for (const deviceID of deviceIDs) {
+    const calibDate = new Date(calibrationDB.calibrations[deviceID].calib_timestamp);
+    if (calibDate < oldestDate) {
+      oldestDate = calibDate;
+    }
+    if (calibDate > newestDate) {
+      newestDate = calibDate;
+    }
+  }
+
+  return {
+    totalDevices: deviceIDs.length,
+    creationTimestamp: calibrationDB.creation_timestamp,
+    oldestCalibration: oldestDate.toISOString(),
+    newestCalibration: newestDate.toISOString(),
+    deviceIdRange: {
+      min: deviceIDs.length > 0 ? deviceIDs[0] : '',
+      max: deviceIDs.length > 0 ? deviceIDs[deviceIDs.length - 1] : '',
+    },
+  };
+}
+
+function sortCalibrationsByDeviceID(calibrationDB: CalibrationDB): CalibrationDB {
+  const sortedCalibrations: CalibrationDB['calibrations'] = {};
+
+  const deviceIDs = Object.keys(calibrationDB.calibrations).sort();
+
+  for (const deviceID of deviceIDs) {
+    sortedCalibrations[deviceID] = calibrationDB.calibrations[deviceID];
+  }
+
+  return {
+    ...calibrationDB,
+    calibrations: sortedCalibrations,
+  };
+}
+
 type FailedFile = {
   file: string;
   reason: string;
@@ -100,13 +154,27 @@ function ingestCalibrationFiles(pathToProjectRoot: string, pathToCalibrationFold
     console.log('---');
   }
 
+  console.log('Sorting calibrations by deviceID...');
+  const sortedCalibrationDB = sortCalibrationsByDeviceID(calibrationDB);
+
   console.log('Writing calibration DB to file...');
   try {
-    fs.writeFileSync(calibrationDBPath, JSON.stringify(calibrationDB, null, 2));
+    fs.writeFileSync(calibrationDBPath, JSON.stringify(sortedCalibrationDB, null, 2));
     console.log('Success');
   } catch (e) {
     console.error(`Error writing calibration DB to file: ${e}`);
     process.exit(1);
+  }
+
+  console.log('Generating calibration metadata...');
+  const metadata = generateCalibrationMetadata(sortedCalibrationDB);
+
+  const metadataPath = path.join(pathToProjectRoot, 'firmware', 'calibrationMetadata.json');
+  try {
+    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    console.log(`Metadata written to ${metadataPath}`);
+  } catch (e) {
+    console.error(`Error writing metadata to file: ${e}`);
   }
 }
 
