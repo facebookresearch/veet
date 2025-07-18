@@ -30,6 +30,7 @@ import { RegisterMainLogger } from './MainLogger';
 import { StreamRecorder } from './StreamRecorder';
 import { lookupCalibrationDataForDevice } from './CalibManager';
 import { retryWrapper } from './mainUtils';
+import { dirname } from 'node:path';
 
 RegisterMainLogger();
 
@@ -630,6 +631,7 @@ export class MainWindow {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private lastSavedConfig: any = null;
 
   writeConfigFile = async () => {
@@ -840,8 +842,11 @@ export class MainWindow {
     this.browserWindow_?.webContents.send(commands.updateSettingsStore, getSettingsStore());
   };
 
-  showFolder = (_: Electron.IpcMainInvokeEvent, path: string) => {
+  showFolder = async (_: Electron.IpcMainInvokeEvent, path: string) => {
     logger.info('showing path ' + path);
+    // first show the folder the file is in in case the file is missing
+    await shell.openPath(dirname(path));
+    // Then try to show the file itself
     shell.showItemInFolder(path);
   };
 
