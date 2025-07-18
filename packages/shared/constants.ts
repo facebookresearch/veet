@@ -24,13 +24,12 @@ export const TOF_DATA_LENGTH = TOF_NUM_SENSORS * TOF_NUM_OBJECTS * 2;
 // TOF FOV
 export const TOF_FOV_DEGREES = 45;
 export const TOF_FOV_RAD_MIN = -0.5 * TOF_FOV_DEGREES * Math.PI / 180;
-export const TOF_FOV_RAD_MAX =  0.5 * TOF_FOV_DEGREES * Math.PI / 180;
+export const TOF_FOV_RAD_MAX = 0.5 * TOF_FOV_DEGREES * Math.PI / 180;
 
 export type TAB_TYPE = typeof TAB_NAMES[keyof typeof TAB_NAMES];
 export const TAB_NAMES = Object.freeze({
   CONFIG: 'Config',
   DOWNLOAD: 'Download',
-  CALIBRATE: 'Calibrate',
   TOF: 'TOF',
   PHO: 'PHO',
   IMU: 'IMU',

@@ -125,16 +125,6 @@ export const SetupCustomMenus = (mainWindow: MainWindow) => {
               }
             },
           },
-          {
-            label: 'Toggle Calibrate Tag',
-            click: () => {
-              const newShowCalibrationSetting = !getSettingsStore().showCalibration;
-              setSettingsStoreValue('showCalibration', newShowCalibrationSetting);
-              if (newShowCalibrationSetting) {
-                setSettingsStoreValue('currentTab', TAB_NAMES.CALIBRATE);
-              }
-            },
-          },
         ],
       });
   }
