@@ -1,7 +1,7 @@
 {
   "name": "veetmanager",
   "productName": "VEET Manager",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "authors": "Meta Platforms, Inc.",
   "main": "packages/main/dist/index.js",
   "license": "SEE LICENSE IN LICENSE",
