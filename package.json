@@ -20,6 +20,7 @@
     "buildInstallerLocal": "cross-env MODE=production yarn run build && electron-builder build",
     "buildInstallers": "tsx .ci/buildInstallers.ts ./package.json",
     "genAttribution": "tsx scripts/genAttribution.ts ./package.json ./ATTRIBUTION.md && yarn run marked -i ./ATTRIBUTION.md -o ./packages/renderer/public/ATTRIBUTION.html",
+    "genChangelog": "yarn run marked -i ./CHANGELOG.md -o ./packages/renderer/public/CHANGELOG.html",
     "ingestCalibrationFiles": "tsx scripts/ingestCalibrationFiles ./",
     "updateFirmware": "tsx scripts/updateFirmwareManifest ./",
     "updateElectronVersion": "cross-env ELECTRON_RUN_AS_NODE=1 electron scripts/update-electron-vendors.js",

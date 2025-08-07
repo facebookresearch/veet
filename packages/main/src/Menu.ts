@@ -77,6 +77,12 @@ export const SetupCustomMenus = (mainWindow: MainWindow) => {
             void mainWindow.showLicenses();
           },
         },
+        {
+          label: 'Changelog',
+          click: () => {
+            void mainWindow.showChangelog();
+          },
+        },
         { type: 'separator' },
         {
           label: 'Show Logs Location',

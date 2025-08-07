@@ -955,7 +955,7 @@ export class MainWindow {
     const modalWindow = new BrowserWindow({
       show: true,
       parent: this.browserWindow_,
-      modal: true,
+      modal: false,
       autoHideMenuBar: true,
       height: DEFAULT_WINDOW_HEIGHT * 0.75,
       width: DEFAULT_WINDOW_WIDTH * 0.75,
@@ -971,6 +971,31 @@ export class MainWindow {
     });
     try {
       await this.loadEntryPoint(modalWindow, 'ATTRIBUTION.html');
+    } catch (e) {
+      logger.error(e);
+    }
+  };
+
+  showChangelog = async () => {
+    const modalWindow = new BrowserWindow({
+      show: true,
+      parent: this.browserWindow_,
+      modal: false,
+      autoHideMenuBar: true,
+      height: DEFAULT_WINDOW_HEIGHT * 0.75,
+      width: DEFAULT_WINDOW_WIDTH * 0.75,
+      resizable: true,
+      useContentSize: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false,
+        webviewTag: false,
+      },
+      title: 'Changelog',
+    });
+    try {
+      await this.loadEntryPoint(modalWindow, 'CHANGELOG.html');
     } catch (e) {
       logger.error(e);
     }
