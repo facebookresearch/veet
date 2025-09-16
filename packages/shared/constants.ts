@@ -38,7 +38,7 @@ export const TAB_NAMES = Object.freeze({
 });
 
 // Battery voltage thresholds
-export const MIN_VOLTAGE_FOR_OPERATIONS_MV = 3700;
+export const MIN_VOLTAGE_FOR_OPERATIONS_MV = 3650;
 export const BATTERY_MIN_VOLTAGE_MV = 3600; // 3.6V represents 1% battery
 export const BATTERY_MAX_VOLTAGE_MV = 4100; // 4.1V represents 100% battery
 

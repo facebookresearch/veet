@@ -1,10 +1,10 @@
 {
-  "totalDevices": 425,
-  "creationTimestamp": "2025-07-30T18:21:17.327Z",
+  "totalDevices": 891,
+  "creationTimestamp": "2025-09-16T19:28:21.007Z",
   "oldestCalibration": "2025-02-26T00:11:24.000Z",
-  "newestCalibration": "2025-07-29T18:40:48.000Z",
+  "newestCalibration": "2025-09-10T16:37:37.000Z",
   "deviceIdRange": {
     "min": "24100207",
-    "max": "25070664"
+    "max": "25010322FAIL"
   }
 }
