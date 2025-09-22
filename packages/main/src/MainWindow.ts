@@ -17,7 +17,7 @@ import * as path from 'path';
 import * as fsPromises from 'fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { TAB_TYPE } from '../../shared/constants';
-import { BATTERY_MAX_VOLTAGE_MV, BATTERY_MIN_VOLTAGE_MV, CONFIG_FILENAME, DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, MIN_VOLTAGE_FOR_OPERATIONS_MV, SENSOR_DATA_FILENAME, TAB_NAMES, VEET_DRIVE_DESCRIPTION } from '../../shared/constants';
+import { BATTERY_MAX_VOLTAGE_MV, BATTERY_MIN_VOLTAGE_MV, CONFIG_FILENAME, DEFAULT_WINDOW_HEIGHT, DEFAULT_WINDOW_WIDTH, MIN_BATTERY_PCT_FOR_OPERATIONS, MIN_VOLTAGE_FOR_OPERATIONS_MV, SENSOR_DATA_FILENAME, TAB_NAMES, VEET_DRIVE_DESCRIPTION } from '../../shared/constants';
 import { getConfigStore, getIntervalConfig, loadConfigFromJson, loadIntervalConfigFromJson, registerConfigChangeHandler, setConfigStoreValue, updateConfigStore } from '../../shared/ConfigStore';
 import { getSettingsStore, registerSettingsChangeHandler, setSettingsStoreValue } from '../../shared/SettingsStore';
 import { SetupCustomMenus } from './Menu';
@@ -429,7 +429,7 @@ export class MainWindow {
         logger.warn(`Voltage too low for ${operationType}: ${voltage}mV (${voltageInVolts}V) < ${minVoltageRequired}mV (${requiredVoltageInVolts}V)`);
 
         void this.showMessageBox({
-          message: `Battery voltage is too low for ${operationType}.\n\nCurrent: ${voltageInVolts}V (${batteryPctStr})\nRequired: ${requiredVoltageInVolts}V (20%) \n\nPlease plug the device into wall power and charge for longer before attempting this operation.`,
+          message: `Battery voltage is too low for ${operationType}.\n\nCurrent: ${voltageInVolts}V (${batteryPctStr})\nRequired: ${requiredVoltageInVolts}V (${MIN_BATTERY_PCT_FOR_OPERATIONS}%) \n\nPlease plug the device into wall power and charge for longer before attempting this operation.`,
           title: 'Battery Too Low',
           buttons: ['OK'],
         });

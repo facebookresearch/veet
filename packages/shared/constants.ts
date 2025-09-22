@@ -38,9 +38,17 @@ export const TAB_NAMES = Object.freeze({
 });
 
 // Battery voltage thresholds
-export const MIN_VOLTAGE_FOR_OPERATIONS_MV = 3650;
 export const BATTERY_MIN_VOLTAGE_MV = 3600; // 3.6V represents 1% battery
 export const BATTERY_MAX_VOLTAGE_MV = 4100; // 4.1V represents 100% battery
+
+// Battery percentage threshold for operations
+export const MIN_BATTERY_PCT_FOR_OPERATIONS = 10; // 10% minimum battery for operations like firmware updates
+
+// Derive voltage threshold from percentage
+export const MIN_VOLTAGE_FOR_OPERATIONS_MV = Math.round(
+  BATTERY_MIN_VOLTAGE_MV +
+  (MIN_BATTERY_PCT_FOR_OPERATIONS / 100) * (BATTERY_MAX_VOLTAGE_MV - BATTERY_MIN_VOLTAGE_MV),
+);
 
 // TODO: Write a full error handling system
 export type ErrorMessageHandler = (errorMessage: string, errorTitle: string) => void;
