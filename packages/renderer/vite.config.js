@@ -42,7 +42,7 @@ const config = {
     rollupOptions: {
       input: join(PACKAGE_ROOT, 'index.html'),
     },
-    emptyOutDir: true,
+    emptyOutDir: false,
     reportCompressedSize: false,
   },
   test: {

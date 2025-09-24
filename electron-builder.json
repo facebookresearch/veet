@@ -5,6 +5,8 @@
     "buildResources": "buildResources",
     "output": "dist"
   },
+  "nodeGypRebuild": false,
+  "npmRebuild": false,
   "extraResources": [
     "README.md",
     "ATTRIBUTION.md",

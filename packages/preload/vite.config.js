@@ -38,7 +38,7 @@ const config = {
         entryFileNames: '[name].mjs',
       },
     },
-    emptyOutDir: true,
+    emptyOutDir: false,
     reportCompressedSize: false,
   },
 

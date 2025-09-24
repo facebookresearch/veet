@@ -11,7 +11,7 @@
   },
   "scripts": {
     "preinstall": "(node -e \"process.exit(process.platform === 'win32' ? 0 : 1)\") && ((edenfsctl info . && eden redirect add $npm_package_config_repo_path/node_modules symlink) || echo no eden found) || ((edenfsctl info . && eden redirect add $npm_package_config_repo_path/node_modules bind) || echo no eden found)",
-    "build": "yarn run viteBuild && electron-builder",
+    "build": "(node -e \"process.exit(process.platform === 'darwin' ? 0 : 1)\" && eden redirect add $npm_package_config_repo_path/dist bind) && yarn run viteBuild && electron-builder",
     "viteBuild": "yarn run viteBuild:main && yarn run viteBuild:preload && yarn run viteBuild:renderer",
     "viteBuild:main": "vite build ./packages/main",
     "viteBuild:preload": "vite build ./packages/preload",
