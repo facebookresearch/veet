@@ -226,7 +226,7 @@ export const lookupCalibrationDataForDevice = async (mainWindow: MainWindow, sho
     }
   }
 
-  logger.info(`Found correct calibration file`);
+  logger.info('Found correct calibration file');
   return true;
 };
 
