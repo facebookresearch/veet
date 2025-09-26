@@ -5,9 +5,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type { IDriveList, IDiskUsage } from './HardwareInterfaces';
+import type { IDriveList, IDiskUsage, ISerialPortFactory } from './HardwareInterfaces';
 import { ProductionDriveList } from './ProductionDriveList';
 import { ProductionDiskUsage } from './ProductionDiskUsage';
+import { ProductionSerialPortFactory } from './ProductionSerialPort';
 
 /**
  * Hardware factory interface for creating hardware abstraction instances.
@@ -26,6 +27,12 @@ export interface IHardwareFactory {
      * @returns IDiskUsage instance appropriate for the current environment
      */
     createDiskUsage(): IDiskUsage;
+
+    /**
+     * Create a serial port factory implementation.
+     * @returns ISerialPortFactory instance appropriate for the current environment
+     */
+    createSerialPortFactory(): ISerialPortFactory;
 }
 
 /**
@@ -47,6 +54,14 @@ export class ProductionHardwareFactory implements IHardwareFactory {
      */
     createDiskUsage(): IDiskUsage {
         return new ProductionDiskUsage();
+    }
+
+    /**
+     * Create a production serial port factory implementation using the serialport library.
+     * @returns ProductionSerialPortFactory instance that communicates with actual hardware
+     */
+    createSerialPortFactory(): ISerialPortFactory {
+        return new ProductionSerialPortFactory();
     }
 }
 
@@ -71,6 +86,15 @@ export class MockHardwareFactory implements IHardwareFactory {
      * @throws Error indicating mock implementation is not yet available
      */
     createDiskUsage(): IDiskUsage {
+        throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
+    }
+
+    /**
+     * Create a mock serial port factory implementation for testing.
+     * @returns Mock ISerialPortFactory instance with configurable test scenarios
+     * @throws Error indicating mock implementation is not yet available
+     */
+    createSerialPortFactory(): ISerialPortFactory {
         throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
     }
 }

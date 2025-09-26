@@ -63,3 +63,118 @@ export interface IDiskUsage {
      */
     check(path: string): Promise<DiskUsageInfo>;
 }
+
+/**
+ * Serial port configuration options.
+ */
+export interface SerialPortOptions {
+    path: string;
+    baudRate: number;
+    // Add other options as needed for production wrapper
+}
+
+/**
+ * Information about available serial ports.
+ */
+export interface PortInfo {
+    path: string;
+    manufacturer?: string;
+    serialNumber?: string;
+    vendorId?: string;
+    productId?: string;
+}
+
+/**
+ * Factory interface for creating serial port instances.
+ * Abstracts the serialport library for dependency injection and testing.
+ */
+export interface ISerialPortFactory {
+    /**
+     * List all available serial ports.
+     * @returns Promise that resolves to an array of port information
+     */
+    list(): Promise<PortInfo[]>;
+
+    /**
+     * Create a new serial port instance.
+     * @param options Configuration options for the serial port
+     * @returns A new serial port instance
+     */
+    create(options: SerialPortOptions): ISerialPort;
+}
+
+/**
+ * Interface for serial port operations.
+ * Abstracts the serialport library for dependency injection and testing.
+ * Supports both callback-based and event-driven communication patterns.
+ * Extends EventEmitter to support Node.js event handling patterns.
+ */
+export interface ISerialPort {
+    /**
+     * Current port state - true if open, false if closed.
+     */
+    readonly isOpen: boolean;
+
+    /**
+     * Open the serial port connection.
+     * @param callback Optional callback function called when operation completes
+     */
+    open(callback?: (error: Error | null) => void): void;
+
+    /**
+     * Close the serial port connection.
+     * @param callback Optional callback function called when operation completes
+     */
+    close(callback?: (error: Error | null) => void): void;
+
+    /**
+     * Write data to the serial port.
+     * @param data The data to write (string or Buffer)
+     * @param callback Optional callback function called when operation completes
+     * @returns True if data was queued successfully, false if port is closed
+     */
+    write(data: string | Buffer, callback?: (error: Error | null) => void): boolean;
+
+    /**
+     * Flush the port's write buffer.
+     * @param callback Optional callback function called when operation completes
+     */
+    flush(callback?: (error: Error | null) => void): void;
+
+    /**
+     * Drain the port's write buffer.
+     * @param callback Optional callback function called when operation completes
+     */
+    drain(callback?: (error: Error | null) => void): void;
+
+    /**
+     * Pipe data to a writable stream (for use with DelimiterParser).
+     * @param destination The destination stream
+     * @returns The destination stream for chaining
+     */
+    pipe<T extends NodeJS.WritableStream>(destination: T): T;
+
+    /**
+     * Register event listeners for port events.
+     */
+    on(event: 'open', listener: () => void): this;
+    on(event: 'close', listener: (error?: Error) => void): this;
+    on(event: 'error', listener: (error: Error) => void): this;
+    on(event: 'data', listener: (data: Buffer) => void): this;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+
+    /**
+     * Add a one-time listener for the given event.
+     * @param event The event name
+     * @param listener The listener function
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+
+    /**
+     * Remove all event listeners for the specified event, or all events if no event specified.
+     * @param event Optional event name to remove listeners for
+     */
+    removeAllListeners(event?: string): this;
+}

@@ -5,12 +5,14 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { DelimiterParser, SerialPort } from 'serialport';
+import { DelimiterParser } from 'serialport';
 import type { Transform } from 'stream';
 import { once, EventEmitter } from 'events';
 import { getDataStore, setDatastoreValue } from '../../shared/DataStore';
 import { Queue } from 'async-await-queue';
 import { logger } from '../../shared/Logger';
+import type { ISerialPort } from '../../shared/HardwareInterfaces';
+import { hardwareFactory } from '../../shared/HardwareFactory';
 
 const BAUD_RATE = 115200; // Doesn't look like this actually does anything, but gotta set something
 const LINE_ENDINGS_SEND = '\r'; // carriage return for sending
@@ -69,7 +71,8 @@ export class SerialManager extends EventEmitter {
       return SerialConnectionStatus.CONNECTED;
     }
     logger.info('Searching for serial ports');
-    const portList = await SerialPort.list();
+    const serialPortFactory = hardwareFactory.createSerialPortFactory();
+    const portList = await serialPortFactory.list();
     if (portList.length == 0) {
       this.connectedPort_ = UnconnectedPort;
       this.connection_ = null;
@@ -130,7 +133,7 @@ export class WriteResponse {
 }
 
 class SerialConnection extends EventEmitter {
-  private port_: SerialPort | undefined;
+  private port_: ISerialPort | undefined;
   private parser_: Transform | undefined;
 
   // Only allow one concurrent serial command, but no need to wait until it's done
@@ -138,7 +141,8 @@ class SerialConnection extends EventEmitter {
   private queue_: Queue = new Queue(1, 0);
 
   connect = async (path: string) => {
-    this.port_ = new SerialPort({
+    const serialPortFactory = hardwareFactory.createSerialPortFactory();
+    this.port_ = serialPortFactory.create({
       path: path,
       baudRate: BAUD_RATE,
     });
@@ -149,7 +153,10 @@ class SerialConnection extends EventEmitter {
     if (!this.port_.isOpen) {
       // SerialPort is an EventEmitter, so wait for it to send the open event async
       try {
-        await once(this.port_, 'open');
+        // Type assertion needed because ISerialPort interface doesn't fully extend EventEmitter
+        // but the production implementation does support all EventEmitter functionality
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await once(this.port_ as any, 'open');
       } catch (err) {
         logger.error('Error Connecting to port ' + path + ': ' + err);
         return false;
