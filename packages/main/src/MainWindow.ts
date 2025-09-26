@@ -10,7 +10,7 @@ import { getDataStore, registerChangeHandler, resetDataStore, setDatastoreValue 
 import { commands } from '../../shared/commands';
 import { SerialConnectionStatus, SerialManager } from './SerialManager';
 import { invLerpClamped } from '../../shared/utils';
-import { list } from 'drivelist';
+import { hardwareFactory } from '../../shared/HardwareFactory';
 import { check } from 'diskusage';
 
 import * as path from 'path';
@@ -454,7 +454,8 @@ export class MainWindow {
         // Already found drive, must have been an extraneous check
         return;
       }
-      const drives = await list();
+      const driveList = hardwareFactory.createDriveList();
+      const drives = await driveList.list();
       let found = false;
       for (const drive of drives) {
         if (!drive.description.startsWith(VEET_DRIVE_DESCRIPTION)) {
