@@ -11,7 +11,6 @@ import { commands } from '../../shared/commands';
 import { SerialConnectionStatus, SerialManager } from './SerialManager';
 import { invLerpClamped } from '../../shared/utils';
 import { hardwareFactory } from '../../shared/HardwareFactory';
-import { check } from 'diskusage';
 
 import * as path from 'path';
 import * as fsPromises from 'fs/promises';
@@ -382,7 +381,8 @@ export class MainWindow {
       // No drive path, can't check disk space
       return;
     }
-    const diskInfo = await check(drivePath);
+    const diskUsage = hardwareFactory.createDiskUsage();
+    const diskInfo = await diskUsage.check(drivePath);
     logger.info(`DiskUsage: ${(diskInfo.available / (1024 * 1024)).toFixed(2)}MB / ${(diskInfo.total / (1024 * 1024)).toFixed(2)}MB`);
     setDatastoreValue('driveSpaceAvailable', diskInfo.available);
     setDatastoreValue('driveSpaceTotal', diskInfo.total);

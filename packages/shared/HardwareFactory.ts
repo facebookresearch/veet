@@ -5,8 +5,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import type { IDriveList } from './HardwareInterfaces';
+import type { IDriveList, IDiskUsage } from './HardwareInterfaces';
 import { ProductionDriveList } from './ProductionDriveList';
+import { ProductionDiskUsage } from './ProductionDiskUsage';
 
 /**
  * Hardware factory interface for creating hardware abstraction instances.
@@ -19,6 +20,12 @@ export interface IHardwareFactory {
      * @returns IDriveList instance appropriate for the current environment
      */
     createDriveList(): IDriveList;
+
+    /**
+     * Create a disk usage implementation.
+     * @returns IDiskUsage instance appropriate for the current environment
+     */
+    createDiskUsage(): IDiskUsage;
 }
 
 /**
@@ -32,6 +39,14 @@ export class ProductionHardwareFactory implements IHardwareFactory {
      */
     createDriveList(): IDriveList {
         return new ProductionDriveList();
+    }
+
+    /**
+     * Create a production disk usage implementation using the diskusage library.
+     * @returns ProductionDiskUsage instance that communicates with actual hardware
+     */
+    createDiskUsage(): IDiskUsage {
+        return new ProductionDiskUsage();
     }
 }
 
@@ -47,6 +62,15 @@ export class MockHardwareFactory implements IHardwareFactory {
      * @throws Error indicating mock implementation is not yet available
      */
     createDriveList(): IDriveList {
+        throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
+    }
+
+    /**
+     * Create a mock disk usage implementation for testing.
+     * @returns Mock IDiskUsage instance with configurable test scenarios
+     * @throws Error indicating mock implementation is not yet available
+     */
+    createDiskUsage(): IDiskUsage {
         throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
     }
 }

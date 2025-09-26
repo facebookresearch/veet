@@ -41,3 +41,25 @@ export interface IDriveList {
      */
     list(): Promise<DriveInfo[]>;
 }
+
+/**
+ * Disk usage information for a given path.
+ */
+export interface DiskUsageInfo {
+    available: number;
+    free: number;
+    total: number;
+}
+
+/**
+ * Interface for disk usage operations.
+ * Abstracts the diskusage library for dependency injection and testing.
+ */
+export interface IDiskUsage {
+    /**
+     * Check disk usage for a given path.
+     * @param path The path to check disk usage for
+     * @returns Promise that resolves to disk usage information
+     */
+    check(path: string): Promise<DiskUsageInfo>;
+}
