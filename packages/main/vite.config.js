@@ -40,7 +40,7 @@ const config = {
         entryFileNames: '[name].js',
       },
     },
-    emptyOutDir: false,
+    emptyOutDir: true,
     reportCompressedSize: false,
   },
 };
