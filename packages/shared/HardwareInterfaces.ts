@@ -5,6 +5,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import type { EventEmitter } from 'events';
+
 /**
  * Hardware abstraction interfaces for VEET Manager E2E testing.
  * These interfaces enable dependency injection and mocking of hardware dependencies.
@@ -109,7 +111,7 @@ export interface ISerialPortFactory {
  * Supports both callback-based and event-driven communication patterns.
  * Extends EventEmitter to support Node.js event handling patterns.
  */
-export interface ISerialPort {
+export interface ISerialPort extends EventEmitter {
     /**
      * Current port state - true if open, false if closed.
      */
@@ -156,6 +158,7 @@ export interface ISerialPort {
 
     /**
      * Register event listeners for port events.
+     * Overrides EventEmitter.on to provide type-safe event handling for serial port events.
      */
     on(event: 'open', listener: () => void): this;
     on(event: 'close', listener: (error?: Error) => void): this;
@@ -163,18 +166,4 @@ export interface ISerialPort {
     on(event: 'data', listener: (data: Buffer) => void): this;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on(event: string | symbol, listener: (...args: any[]) => void): this;
-
-    /**
-     * Add a one-time listener for the given event.
-     * @param event The event name
-     * @param listener The listener function
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    once(event: string | symbol, listener: (...args: any[]) => void): this;
-
-    /**
-     * Remove all event listeners for the specified event, or all events if no event specified.
-     * @param event Optional event name to remove listeners for
-     */
-    removeAllListeners(event?: string): this;
 }

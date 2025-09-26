@@ -145,4 +145,120 @@ class ProductionSerialPort implements ISerialPort {
         this.port.removeAllListeners(event);
         return this;
     }
+
+    /**
+     * Add a listener to the beginning of the listeners array for the specified event.
+     * @param event The event name
+     * @param listener The listener function
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prependListener(event: string | symbol, listener: (...args: any[]) => void): this {
+        this.port.prependListener(event, listener);
+        return this;
+    }
+
+    /**
+     * Add a one-time listener to the beginning of the listeners array for the specified event.
+     * @param event The event name
+     * @param listener The listener function
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): this {
+        this.port.prependOnceListener(event, listener);
+        return this;
+    }
+
+    /**
+     * Add an event listener (alias for on).
+     * @param event The event name
+     * @param listener The listener function
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    addListener(event: string | symbol, listener: (...args: any[]) => void): this {
+        this.port.addListener(event, listener);
+        return this;
+    }
+
+    /**
+     * Remove a specific event listener.
+     * @param event The event name
+     * @param listener The listener function to remove
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    removeListener(event: string | symbol, listener: (...args: any[]) => void): this {
+        this.port.removeListener(event, listener);
+        return this;
+    }
+
+    /**
+     * Remove a specific event listener (alias for removeListener).
+     * @param event The event name
+     * @param listener The listener function to remove
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    off(event: string | symbol, listener: (...args: any[]) => void): this {
+        this.port.off(event, listener);
+        return this;
+    }
+
+    /**
+     * Set the maximum number of listeners for this EventEmitter.
+     * @param n The maximum number of listeners
+     */
+    setMaxListeners(n: number): this {
+        this.port.setMaxListeners(n);
+        return this;
+    }
+
+    /**
+     * Get the maximum number of listeners for this EventEmitter.
+     */
+    getMaxListeners(): number {
+        return this.port.getMaxListeners();
+    }
+
+    /**
+     * Get the current listener count for the specified event.
+     * @param event The event name
+     */
+    listenerCount(event: string | symbol): number {
+        return this.port.listenerCount(event);
+    }
+
+    /**
+     * Get an array of listeners for the specified event.
+     * @param event The event name
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    listeners(event: string | symbol): Array<(...args: any[]) => void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return this.port.listeners(event) as Array<(...args: any[]) => void>;
+    }
+
+    /**
+     * Get an array of raw listeners for the specified event (including wrappers).
+     * @param event The event name
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rawListeners(event: string | symbol): Array<(...args: any[]) => void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return this.port.rawListeners(event) as Array<(...args: any[]) => void>;
+    }
+
+    /**
+     * Get an array of event names for which this EventEmitter has listeners.
+     */
+    eventNames(): (string | symbol)[] {
+        return this.port.eventNames();
+    }
+
+    /**
+     * Emit an event with the specified arguments.
+     * @param event The event name
+     * @param args Arguments to pass to listeners
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    emit(event: string | symbol, ...args: any[]): boolean {
+        return this.port.emit(event, ...args);
+    }
 }

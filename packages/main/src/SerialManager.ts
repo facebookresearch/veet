@@ -153,10 +153,7 @@ class SerialConnection extends EventEmitter {
     if (!this.port_.isOpen) {
       // SerialPort is an EventEmitter, so wait for it to send the open event async
       try {
-        // Type assertion needed because ISerialPort interface doesn't fully extend EventEmitter
-        // but the production implementation does support all EventEmitter functionality
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await once(this.port_ as any, 'open');
+        await once(this.port_, 'open');
       } catch (err) {
         logger.error('Error Connecting to port ' + path + ': ' + err);
         return false;

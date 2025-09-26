@@ -9,6 +9,9 @@ import type { IDriveList, IDiskUsage, ISerialPortFactory } from './HardwareInter
 import { ProductionDriveList } from './ProductionDriveList';
 import { ProductionDiskUsage } from './ProductionDiskUsage';
 import { ProductionSerialPortFactory } from './ProductionSerialPort';
+import { MockDriveList, MockDriveListScenarios } from './MockDriveList';
+import { MockDiskUsage, MockDiskUsageScenarios } from './MockDiskUsage';
+import { MockSerialPortFactory, MockSerialPortScenarios } from './MockSerialPort';
 
 /**
  * Hardware factory interface for creating hardware abstraction instances.
@@ -74,28 +77,28 @@ export class MockHardwareFactory implements IHardwareFactory {
     /**
      * Create a mock drive list implementation for testing.
      * @returns Mock IDriveList instance with configurable test scenarios
-     * @throws Error indicating mock implementation is not yet available
      */
     createDriveList(): IDriveList {
-        throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
+        // Default to single device scenario for most tests
+        return new MockDriveList(MockDriveListScenarios.singleDevice());
     }
 
     /**
      * Create a mock disk usage implementation for testing.
      * @returns Mock IDiskUsage instance with configurable test scenarios
-     * @throws Error indicating mock implementation is not yet available
      */
     createDiskUsage(): IDiskUsage {
-        throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
+        // Default to VEET device with storage scenario for most tests
+        return new MockDiskUsage(MockDiskUsageScenarios.veetDeviceWithStorage());
     }
 
     /**
      * Create a mock serial port factory implementation for testing.
      * @returns Mock ISerialPortFactory instance with configurable test scenarios
-     * @throws Error indicating mock implementation is not yet available
      */
     createSerialPortFactory(): ISerialPortFactory {
-        throw new Error('Mock hardware factory not yet implemented - scheduled for Phase 4');
+        // Default to single device scenario for most tests
+        return new MockSerialPortFactory(MockSerialPortScenarios.singleDevice());
     }
 }
 

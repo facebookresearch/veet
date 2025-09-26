@@ -24,6 +24,14 @@ const config = {
      */
     testTimeout: 30_000,
     hookTimeout: 30_000,
+
+    /**
+     * Environment configuration for hardware mocking.
+     * Sets NODE_ENV to 'test' to ensure mock hardware implementations are used.
+     */
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 };
 

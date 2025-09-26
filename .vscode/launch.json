@@ -9,6 +9,18 @@
       "program": "${workspaceFolder}/scripts/watch.js",
       "autoAttachChildProcesses": true,
       "outputCapture": "std",
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Main Process (Mock Hardware)",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/scripts/watch.js",
+      "autoAttachChildProcesses": true,
+      "outputCapture": "std",
+      "env": {
+        "VEET_MOCK_HARDWARE": "true"
+      }
     }
   ]
 }
