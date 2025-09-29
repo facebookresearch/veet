@@ -159,14 +159,14 @@ describe('Hardware Mock Validation - IDriveList', () => {
     describe('MockHardwareFactory integration', () => {
         it('should create MockDriveList instance from factory in test environment', () => {
             const factory = new MockHardwareFactory();
-            const driveList = factory.createDriveList();
+            const driveList = factory.getDriveList();
 
             expect(driveList).toBeInstanceOf(MockDriveList);
         });
 
         it('should return consistent drive list results from factory-created instance', async () => {
             const factory = new MockHardwareFactory();
-            const driveList = factory.createDriveList();
+            const driveList = factory.getDriveList();
 
             const drives = await driveList.list();
 
@@ -630,14 +630,14 @@ describe('Hardware Mock Validation - ISerialPort', () => {
     describe('MockHardwareFactory integration', () => {
         it('should create MockSerialPortFactory from factory in test environment', () => {
             const factory = new MockHardwareFactory();
-            const serialPortFactory = factory.createSerialPortFactory();
+            const serialPortFactory = factory.getSerialPortFactory();
 
             expect(serialPortFactory).toBeInstanceOf(MockSerialPortFactory);
         });
 
         it('should provide consistent serial port factory behavior', async () => {
             const factory = new MockHardwareFactory();
-            const serialPortFactory = factory.createSerialPortFactory();
+            const serialPortFactory = factory.getSerialPortFactory();
 
             const ports = await serialPortFactory.list();
             const port = serialPortFactory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
@@ -1123,14 +1123,14 @@ describe('Hardware Mock Validation - IDiskUsage', () => {
     describe('MockHardwareFactory integration', () => {
         it('should create MockDiskUsage instance from factory in test environment', () => {
             const factory = new MockHardwareFactory();
-            const diskUsage = factory.createDiskUsage();
+            const diskUsage = factory.getDiskUsage();
 
             expect(diskUsage).toBeInstanceOf(MockDiskUsage);
         });
 
         it('should return consistent disk usage results from factory-created instance', async () => {
             const factory = new MockHardwareFactory();
-            const diskUsage = factory.createDiskUsage();
+            const diskUsage = factory.getDiskUsage();
 
             const result = await diskUsage.check('/some/path');
 

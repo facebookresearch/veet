@@ -14,91 +14,118 @@ import { MockDiskUsage, MockDiskUsageScenarios } from './MockDiskUsage';
 import { MockSerialPortFactory, MockSerialPortScenarios } from './MockSerialPort';
 
 /**
- * Hardware factory interface for creating hardware abstraction instances.
+ * Hardware factory interface for managing hardware abstraction instances.
  * This enables dependency injection and environment-based switching between
- * production implementations and test mocks.
+ * production implementations and test mocks with lazy initialization.
  */
 export interface IHardwareFactory {
     /**
-     * Create a drive list implementation.
+     * Get a drive list implementation (lazy initialized).
      * @returns IDriveList instance appropriate for the current environment
      */
-    createDriveList(): IDriveList;
+    getDriveList(): IDriveList;
 
     /**
-     * Create a disk usage implementation.
+     * Get a disk usage implementation (lazy initialized).
      * @returns IDiskUsage instance appropriate for the current environment
      */
-    createDiskUsage(): IDiskUsage;
+    getDiskUsage(): IDiskUsage;
 
     /**
-     * Create a serial port factory implementation.
+     * Get a serial port factory implementation (lazy initialized).
      * @returns ISerialPortFactory instance appropriate for the current environment
      */
-    createSerialPortFactory(): ISerialPortFactory;
+    getSerialPortFactory(): ISerialPortFactory;
 }
 
 /**
- * Production hardware factory that creates real hardware implementations.
+ * Production hardware factory that manages real hardware implementations.
  * Used in normal application runtime when actual hardware interaction is needed.
+ * Implements lazy initialization to avoid recreating instances.
  */
 export class ProductionHardwareFactory implements IHardwareFactory {
+    private driveList_: IDriveList | null = null;
+    private diskUsage_: IDiskUsage | null = null;
+    private serialPortFactory_: ISerialPortFactory | null = null;
+
     /**
-     * Create a production drive list implementation using the drivelist library.
+     * Get a production drive list implementation using the drivelist library (lazy initialized).
      * @returns ProductionDriveList instance that communicates with actual hardware
      */
-    createDriveList(): IDriveList {
-        return new ProductionDriveList();
+    getDriveList(): IDriveList {
+        if (!this.driveList_) {
+            this.driveList_ = new ProductionDriveList();
+        }
+        return this.driveList_;
     }
 
     /**
-     * Create a production disk usage implementation using the diskusage library.
+     * Get a production disk usage implementation using the diskusage library (lazy initialized).
      * @returns ProductionDiskUsage instance that communicates with actual hardware
      */
-    createDiskUsage(): IDiskUsage {
-        return new ProductionDiskUsage();
+    getDiskUsage(): IDiskUsage {
+        if (!this.diskUsage_) {
+            this.diskUsage_ = new ProductionDiskUsage();
+        }
+        return this.diskUsage_;
     }
 
     /**
-     * Create a production serial port factory implementation using the serialport library.
+     * Get a production serial port factory implementation using the serialport library (lazy initialized).
      * @returns ProductionSerialPortFactory instance that communicates with actual hardware
      */
-    createSerialPortFactory(): ISerialPortFactory {
-        return new ProductionSerialPortFactory();
+    getSerialPortFactory(): ISerialPortFactory {
+        if (!this.serialPortFactory_) {
+            this.serialPortFactory_ = new ProductionSerialPortFactory();
+        }
+        return this.serialPortFactory_;
     }
 }
 
 /**
- * Mock hardware factory that creates test implementations.
+ * Mock hardware factory that manages test implementations.
  * Used during testing to avoid native dependencies and provide controllable behavior.
- * Implementation will be added in Phase 4 of the migration plan.
+ * Implements lazy initialization to avoid recreating instances.
  */
 export class MockHardwareFactory implements IHardwareFactory {
+    private driveList_: IDriveList | null = null;
+    private diskUsage_: IDiskUsage | null = null;
+    private serialPortFactory_: ISerialPortFactory | null = null;
+
     /**
-     * Create a mock drive list implementation for testing.
+     * Get a mock drive list implementation for testing (lazy initialized).
      * @returns Mock IDriveList instance with configurable test scenarios
      */
-    createDriveList(): IDriveList {
-        // Default to single device scenario for most tests
-        return new MockDriveList(MockDriveListScenarios.singleDevice());
+    getDriveList(): IDriveList {
+        if (!this.driveList_) {
+            // Default to single device scenario for most tests
+            this.driveList_ = new MockDriveList(MockDriveListScenarios.singleDevice());
+        }
+        return this.driveList_;
     }
 
     /**
-     * Create a mock disk usage implementation for testing.
+     * Get a mock disk usage implementation for testing (lazy initialized).
      * @returns Mock IDiskUsage instance with configurable test scenarios
      */
-    createDiskUsage(): IDiskUsage {
-        // Default to VEET device with storage scenario for most tests
-        return new MockDiskUsage(MockDiskUsageScenarios.veetDeviceWithStorage());
+    getDiskUsage(): IDiskUsage {
+        if (!this.diskUsage_) {
+            // Default to VEET device with storage scenario for most tests
+            this.diskUsage_ = new MockDiskUsage(MockDiskUsageScenarios.veetDeviceWithStorage());
+        }
+        return this.diskUsage_;
     }
 
     /**
-     * Create a mock serial port factory implementation for testing.
+     * Get a mock serial port factory implementation for testing (lazy initialized).
      * @returns Mock ISerialPortFactory instance with configurable test scenarios
      */
-    createSerialPortFactory(): ISerialPortFactory {
-        // Default to single device scenario for most tests
-        return new MockSerialPortFactory(MockSerialPortScenarios.singleDevice());
+    getSerialPortFactory(): ISerialPortFactory {
+        if (!this.serialPortFactory_) {
+            // Default to single device scenario for most tests
+            this.serialPortFactory_ = new MockSerialPortFactory(MockSerialPortScenarios.singleDevice());
+        }
+        return this.serialPortFactory_;
     }
 }
 

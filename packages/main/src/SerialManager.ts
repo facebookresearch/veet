@@ -71,7 +71,7 @@ export class SerialManager extends EventEmitter {
       return SerialConnectionStatus.CONNECTED;
     }
     logger.info('Searching for serial ports');
-    const serialPortFactory = hardwareFactory.createSerialPortFactory();
+    const serialPortFactory = hardwareFactory.getSerialPortFactory();
     const portList = await serialPortFactory.list();
     if (portList.length == 0) {
       this.connectedPort_ = UnconnectedPort;
@@ -141,7 +141,7 @@ class SerialConnection extends EventEmitter {
   private queue_: Queue = new Queue(1, 0);
 
   connect = async (path: string) => {
-    const serialPortFactory = hardwareFactory.createSerialPortFactory();
+    const serialPortFactory = hardwareFactory.getSerialPortFactory();
     this.port_ = serialPortFactory.create({
       path: path,
       baudRate: BAUD_RATE,

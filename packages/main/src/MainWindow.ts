@@ -381,7 +381,7 @@ export class MainWindow {
       // No drive path, can't check disk space
       return;
     }
-    const diskUsage = hardwareFactory.createDiskUsage();
+    const diskUsage = hardwareFactory.getDiskUsage();
     const diskInfo = await diskUsage.check(drivePath);
     logger.info(`DiskUsage: ${(diskInfo.available / (1024 * 1024)).toFixed(2)}MB / ${(diskInfo.total / (1024 * 1024)).toFixed(2)}MB`);
     setDatastoreValue('driveSpaceAvailable', diskInfo.available);
@@ -454,7 +454,7 @@ export class MainWindow {
         // Already found drive, must have been an extraneous check
         return;
       }
-      const driveList = hardwareFactory.createDriveList();
+      const driveList = hardwareFactory.getDriveList();
       const drives = await driveList.list();
       let found = false;
       for (const drive of drives) {
