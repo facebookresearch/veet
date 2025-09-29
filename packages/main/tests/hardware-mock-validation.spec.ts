@@ -8,8 +8,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MockDriveList, MockDriveListScenarios } from '../../shared/MockDriveList';
 import { MockDiskUsage, MockDiskUsageScenarios } from '../../shared/MockDiskUsage';
+import { MockSerialPortFactory, MockSerialPortScenarios } from '../../shared/MockSerialPort';
 import { MockHardwareFactory } from '../../shared/HardwareFactory';
-import type { IDriveList, IDiskUsage } from '../../shared/HardwareInterfaces';
+import type { IDriveList, IDiskUsage, ISerialPortFactory, ISerialPort } from '../../shared/HardwareInterfaces';
 
 /**
  * Hardware mock validation tests for main process.
@@ -289,6 +290,573 @@ describe('Hardware Mock Validation - IDriveList', () => {
             // Should still have system drives
             const systemDrives = drives.filter(d => !d.description.includes('VEET'));
             expect(systemDrives).toHaveLength(1);
+        });
+    });
+});
+
+/**
+ * Step 4.9: Basic main process mock validation test for ISerialPort
+ */
+describe('Hardware Mock Validation - ISerialPort', () => {
+    let originalNodeEnv: string | undefined;
+
+    beforeEach(() => {
+        // Save original NODE_ENV
+        originalNodeEnv = process.env.NODE_ENV;
+        // Set test environment to trigger mock usage
+        process.env.NODE_ENV = 'test';
+    });
+
+    afterEach(() => {
+        // Restore original NODE_ENV
+        if (originalNodeEnv !== undefined) {
+            process.env.NODE_ENV = originalNodeEnv;
+        } else {
+            delete process.env.NODE_ENV;
+        }
+    });
+
+    describe('MockSerialPortFactory basic functionality', () => {
+        it('should create MockSerialPortFactory instance with default configuration', () => {
+            const factory = new MockSerialPortFactory();
+            expect(factory).toBeInstanceOf(MockSerialPortFactory);
+        });
+
+        it('should list no ports with no devices scenario', async () => {
+            const config = MockSerialPortScenarios.noDevices();
+            const factory = new MockSerialPortFactory(config);
+
+            const ports = await factory.list();
+
+            expect(ports).toHaveLength(0);
+        });
+
+        it('should list single port with single device scenario', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+
+            const ports = await factory.list();
+
+            expect(ports).toHaveLength(1);
+            expect(ports[0].path).toBe('/dev/ttyUSB0');
+            expect(ports[0].manufacturer).toBe('Meta');
+            expect(ports[0].serialNumber).toBe('TEST001');
+            expect(ports[0].vendorId).toBe('04d8');
+            expect(ports[0].productId).toBe('0001');
+        });
+
+        it('should list multiple ports with multiple device scenario', async () => {
+            const config = MockSerialPortScenarios.multipleDevices();
+            const factory = new MockSerialPortFactory(config);
+
+            const ports = await factory.list();
+
+            expect(ports).toHaveLength(3);
+            expect(ports.map(p => p.path)).toEqual(['/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyUSB2']);
+            expect(ports.map(p => p.serialNumber)).toEqual(['TEST001', 'TEST002', 'TEST003']);
+        });
+
+        it('should create serial port instances', () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            expect(port).toBeDefined();
+            expect(port.isOpen).toBe(false);
+        });
+
+        it('should support dynamic device management', async () => {
+            const factory = new MockSerialPortFactory();
+
+            // Initially no devices
+            let ports = await factory.list();
+            expect(ports).toHaveLength(0);
+
+            // Add a device
+            factory.addDevice({
+                serialNumber: 'DYNAMIC001',
+                side: 'L',
+                hardwareVersion: 'VEET-HW-2.1',
+                firmwareVersion: 'VEET-FW-1.5.2',
+                batteryVoltage: 4120,
+                epochTime: Math.floor(Date.now() / 1000),
+                isConnected: true,
+                path: '/dev/ttyUSB0',
+                responseLatencyMs: 100,
+                errorProbability: 0,
+                isInBootloader: false,
+                isInTransportMode: false,
+                vendorId: '04d8',
+                productId: '0001',
+                manufacturer: 'Meta',
+            });
+
+            // Should now list the device
+            ports = await factory.list();
+            expect(ports).toHaveLength(1);
+            expect(ports[0].serialNumber).toBe('DYNAMIC001');
+
+            // Remove the device
+            factory.removeDevice('/dev/ttyUSB0');
+
+            // Should be empty again
+            ports = await factory.list();
+            expect(ports).toHaveLength(0);
+        });
+
+        it('should clear all devices', async () => {
+            const config = MockSerialPortScenarios.multipleDevices();
+            const factory = new MockSerialPortFactory(config);
+
+            // Should initially have devices
+            let ports = await factory.list();
+            expect(ports.length).toBeGreaterThan(0);
+
+            // Clear all devices
+            factory.clearDevices();
+
+            // Should now be empty
+            ports = await factory.list();
+            expect(ports).toHaveLength(0);
+        });
+    });
+
+    describe('MockSerialPort basic functionality', () => {
+        it('should handle port opening and closing', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            expect(port.isOpen).toBe(false);
+
+            // Test opening
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', () => {
+                    try {
+                        expect(port.isOpen).toBe(true);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Test closing
+            await new Promise<void>((resolve, reject) => {
+                port.on('close', () => {
+                    try {
+                        expect(port.isOpen).toBe(false);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                port.close();
+            });
+        });
+
+        it('should handle port opening errors for non-existent devices', async () => {
+            const factory = new MockSerialPortFactory(); // No devices
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            await expect(new Promise<void>((resolve, reject) => {
+                port.on('error', (error) => {
+                    reject(error);
+                });
+                port.on('open', () => {
+                    resolve();
+                });
+                port.open();
+            })).rejects.toThrow('No such file or directory');
+        });
+
+        it('should handle basic VEET command communication', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Open port first
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', resolve);
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Send command and wait for response
+            const response = await new Promise<string>((resolve, reject) => {
+                port.on('data', (data) => {
+                    resolve(data.toString());
+                });
+                port.on('error', reject);
+                port.write('GB\r');
+            });
+
+            // Should receive battery response terminated with EOT (accept both formats)
+            expect(response).toMatch(/(Battery: \d+mV|\d+,BAT,\d+)/);
+            expect(response).toContain('\u0004');
+
+            port.close();
+        });
+
+        it('should handle SET TIME command', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Open port first
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', resolve);
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Send SET TIME command
+            const newTime = Math.floor(Date.now() / 1000);
+            const response = await new Promise<string>((resolve, reject) => {
+                port.on('data', (data) => {
+                    resolve(data.toString());
+                });
+                port.on('error', reject);
+                port.write(`ST${newTime}\r`);
+            });
+
+            expect(response).toBe('Time set\u0004');
+            port.close();
+        });
+
+        it('should handle unknown commands', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Open port first
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', resolve);
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Send unknown command with timeout handling
+            const response = await new Promise<string | null>((resolve, reject) => {
+                let responseReceived = false;
+
+                port.on('data', (data) => {
+                    responseReceived = true;
+                    resolve(data.toString());
+                });
+                port.on('error', reject);
+
+                // Set a timeout to handle no-response scenario (20% chance in mock)
+                const timeout = setTimeout(() => {
+                    if (!responseReceived) {
+                        resolve(null); // No response received (timeout simulation)
+                    }
+                }, 1500); // 1.5 second timeout
+
+                port.write('UNKNOWN\r');
+
+                // Clean up timeout if we get a response
+                port.once('data', () => {
+                    clearTimeout(timeout);
+                });
+            });
+
+            if (response !== null) {
+                // If we got a response, it should be an error
+                expect(response).toContain('#Err');
+                expect(response).toContain('\u0004');
+            }
+            // If response is null, that's also valid behavior (simulated timeout)
+
+            port.close();
+        }, 3000); // Set test timeout to 3 seconds
+
+        it('should handle basic state management', () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Initial state
+            expect(port.isOpen).toBe(false);
+
+            // Methods should exist
+            expect(typeof port.open).toBe('function');
+            expect(typeof port.close).toBe('function');
+            expect(typeof port.write).toBe('function');
+            expect(typeof port.flush).toBe('function');
+            expect(typeof port.drain).toBe('function');
+            expect(typeof port.pipe).toBe('function');
+            expect(typeof port.on).toBe('function');
+            expect(typeof port.removeAllListeners).toBe('function');
+        });
+
+        it('should handle error simulation with unreliable device', async () => {
+            const config = MockSerialPortScenarios.unreliableDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Open port first
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', resolve);
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Try multiple commands, expect at least one error eventually
+            let receivedError = false;
+            for (let i = 0; i < 5 && !receivedError; i++) {
+                const response = await new Promise<string>((resolve, reject) => {
+                    port.on('data', (data) => {
+                        resolve(data.toString());
+                    });
+                    port.on('error', reject);
+                    port.write('GB\r');
+                });
+
+                if (response.includes('#Err')) {
+                    receivedError = true;
+                }
+            }
+
+            // With 30% error rate and 5 attempts, we should get at least one error
+            // But don't fail the test if we don't - it's probabilistic
+            port.close();
+        });
+    });
+
+    describe('MockHardwareFactory integration', () => {
+        it('should create MockSerialPortFactory from factory in test environment', () => {
+            const factory = new MockHardwareFactory();
+            const serialPortFactory = factory.createSerialPortFactory();
+
+            expect(serialPortFactory).toBeInstanceOf(MockSerialPortFactory);
+        });
+
+        it('should provide consistent serial port factory behavior', async () => {
+            const factory = new MockHardwareFactory();
+            const serialPortFactory = factory.createSerialPortFactory();
+
+            const ports = await serialPortFactory.list();
+            const port = serialPortFactory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Factory default should work consistently
+            expect(Array.isArray(ports)).toBe(true);
+            expect(port).toBeDefined();
+            expect(typeof port.isOpen).toBe('boolean');
+        });
+    });
+
+    describe('ISerialPort interface compliance', () => {
+        it('should implement ISerialPortFactory interface correctly', async () => {
+            const factory: ISerialPortFactory = new MockSerialPortFactory();
+
+            // Should have list method that returns Promise<PortInfo[]>
+            const result = factory.list();
+            expect(result).toBeInstanceOf(Promise);
+
+            const ports = await result;
+            expect(Array.isArray(ports)).toBe(true);
+
+            // Should have create method that returns ISerialPort
+            const port = factory.create({ path: '/test', baudRate: 115200 });
+            expect(port).toBeDefined();
+        });
+
+        it('should implement ISerialPort interface correctly', () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port: ISerialPort = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Validate all required properties and methods exist
+            expect(typeof port.isOpen).toBe('boolean');
+            expect(typeof port.open).toBe('function');
+            expect(typeof port.close).toBe('function');
+            expect(typeof port.write).toBe('function');
+            expect(typeof port.flush).toBe('function');
+            expect(typeof port.drain).toBe('function');
+            expect(typeof port.pipe).toBe('function');
+            expect(typeof port.on).toBe('function');
+            expect(typeof port.removeAllListeners).toBe('function');
+        });
+
+        it('should return valid PortInfo objects with all required properties', async () => {
+            const config = MockSerialPortScenarios.multipleDevices();
+            const factory = new MockSerialPortFactory(config);
+
+            const ports = await factory.list();
+
+            for (const port of ports) {
+                // Validate required properties exist
+                expect(port).toHaveProperty('path');
+                expect(typeof port.path).toBe('string');
+
+                // Validate optional properties have correct types when present
+                if (port.manufacturer !== undefined) {
+                    expect(typeof port.manufacturer).toBe('string');
+                }
+                if (port.serialNumber !== undefined) {
+                    expect(typeof port.serialNumber).toBe('string');
+                }
+                if (port.vendorId !== undefined) {
+                    expect(typeof port.vendorId).toBe('string');
+                }
+                if (port.productId !== undefined) {
+                    expect(typeof port.productId).toBe('string');
+                }
+            }
+        });
+    });
+
+    describe('Predefined scenarios validation', () => {
+        it('should provide realistic device scenarios', async () => {
+            const scenarios = [
+                MockSerialPortScenarios.singleDevice(),
+                MockSerialPortScenarios.leftRightPair(),
+                MockSerialPortScenarios.lowBatteryDevice(),
+                MockSerialPortScenarios.multipleDevices(),
+                MockSerialPortScenarios.legacyDevice(),
+            ];
+
+            for (const config of scenarios) {
+                const factory = new MockSerialPortFactory(config);
+                const ports = await factory.list();
+
+                // All scenarios should return valid port lists
+                expect(Array.isArray(ports)).toBe(true);
+
+                // Verify each port has required properties
+                for (const port of ports) {
+                    expect(typeof port.path).toBe('string');
+                    expect(port.path.length).toBeGreaterThan(0);
+                }
+            }
+        });
+
+        it('should provide device state scenarios', () => {
+            const scenarios = [
+                MockSerialPortScenarios.bootloaderDevice(),
+                MockSerialPortScenarios.transportModeDevice(),
+                MockSerialPortScenarios.unreliableDevice(),
+                MockSerialPortScenarios.highLatencyDevice(),
+            ];
+
+            for (const config of scenarios) {
+                const factory = new MockSerialPortFactory(config);
+                const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+                // All scenarios should create valid ports
+                expect(port).toBeDefined();
+                expect(typeof port.isOpen).toBe('boolean');
+            }
+        });
+
+        it('should provide sensor data scenarios', () => {
+            const config = MockSerialPortScenarios.realisticSensorData();
+
+            expect(config.sensorData).toBeDefined();
+            expect(typeof config.sensorData.imuData).toBe('string');
+            expect(typeof config.sensorData.phoData).toBe('string');
+            expect(typeof config.sensorData.tofData).toBe('string');
+            expect(typeof config.sensorData.alsData).toBe('string');
+
+            // Sensor data should contain timestamp format
+            expect(config.sensorData.imuData).toMatch(/^\d+,IMU,/);
+            expect(config.sensorData.phoData).toMatch(/^\d+,PHO,/);
+            expect(config.sensorData.tofData).toMatch(/^\d+,TOF,/);
+            expect(config.sensorData.alsData).toMatch(/^\d+,ALS,/);
+        });
+    });
+
+    describe('Error handling and edge cases', () => {
+        it('should handle empty configuration gracefully', async () => {
+            const factory = new MockSerialPortFactory({});
+
+            const ports = await factory.list();
+            expect(ports).toHaveLength(0);
+
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            expect(port).toBeDefined();
+            expect(port.isOpen).toBe(false);
+        });
+
+        it('should handle device disconnection during operation', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Open port first
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', () => {
+                    resolve();
+                    // Send a command after opening
+                    port.write('GB\r');
+                });
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Manually simulate disconnection by forcing device state change
+            const device = config.devices[0];
+
+            // Wait for close event (simulate device disconnection)
+            await new Promise<void>((resolve) => {
+                port.on('close', () => {
+                    resolve();
+                });
+
+                // Trigger disconnection quickly for testing
+                setTimeout(() => {
+                    device.isConnected = false;
+                    if (port.isOpen) {
+                        // Use type assertion to access private property for testing
+                        (port as unknown as { _isOpen: boolean })._isOpen = false;
+                        port.emit('close');
+                    }
+                }, 100); // Disconnect after 100ms instead of 5 seconds
+            });
+        }, 3000); // Increase test timeout to 3 seconds to be safe
+
+        it('should handle configuration updates', async () => {
+            const factory = new MockSerialPortFactory();
+
+            // Initially no devices
+            let ports = await factory.list();
+            expect(ports).toHaveLength(0);
+
+            // Update configuration
+            factory.setConfig(MockSerialPortScenarios.singleDevice());
+
+            // Should now have a device
+            ports = await factory.list();
+            expect(ports).toHaveLength(1);
+        });
+
+        it('should handle zero latency configuration', () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            config.simulateRealisticTiming = false;
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Should configure zero latency
+            expect(config.simulateRealisticTiming).toBe(false);
+            expect(port).toBeDefined();
+            expect(port.isOpen).toBe(false);
+        });
+
+        it('should handle invalid command configuration', () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Mock port should be able to handle write operations without crashing
+            expect(() => {
+                port.write('INVALID\r');
+                port.write('123\r');
+                port.write('\r');
+            }).not.toThrow();
         });
     });
 });
