@@ -10,7 +10,7 @@ import { getDataStore, registerChangeHandler, resetDataStore, setDatastoreValue 
 import { commands } from '../../shared/commands';
 import { SerialConnectionStatus, SerialManager } from './SerialManager';
 import { invLerpClamped } from '../../shared/utils';
-import { hardwareFactory } from '../../shared/HardwareFactory';
+import { hardwareFactory } from './HardwareInterface/HardwareFactory';
 
 import * as path from 'path';
 import * as fsPromises from 'fs/promises';

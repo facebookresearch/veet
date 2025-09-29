@@ -6,11 +6,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { MockDriveList, MockDriveListScenarios } from '../../shared/MockDriveList';
-import { MockDiskUsage, MockDiskUsageScenarios } from '../../shared/MockDiskUsage';
-import { MockSerialPortFactory, MockSerialPortScenarios } from '../../shared/MockSerialPort';
-import { MockHardwareFactory } from '../../shared/HardwareFactory';
-import type { IDriveList, IDiskUsage, ISerialPortFactory, ISerialPort } from '../../shared/HardwareInterfaces';
+import { MockDriveList, MockDriveListScenarios } from '../src/HardwareInterface/MockDriveList';
+import { MockDiskUsage, MockDiskUsageScenarios } from '../src/HardwareInterface/MockDiskUsage';
+import { MockSerialPortFactory, MockSerialPortScenarios } from '../src/HardwareInterface/MockSerialPort';
+import { MockHardwareFactory } from '../src/HardwareInterface/HardwareFactory';
+import type { IDriveList, IDiskUsage, ISerialPortFactory, ISerialPort } from '../src/HardwareInterface/HardwareInterfaces';
 
 /**
  * Hardware mock validation tests for main process.

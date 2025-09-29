@@ -11,8 +11,8 @@ import { once, EventEmitter } from 'events';
 import { getDataStore, setDatastoreValue } from '../../shared/DataStore';
 import { Queue } from 'async-await-queue';
 import { logger } from '../../shared/Logger';
-import type { ISerialPort } from '../../shared/HardwareInterfaces';
-import { hardwareFactory } from '../../shared/HardwareFactory';
+import type { ISerialPort } from './HardwareInterface/HardwareInterfaces';
+import { hardwareFactory } from './HardwareInterface/HardwareFactory';
 
 const BAUD_RATE = 115200; // Doesn't look like this actually does anything, but gotta set something
 const LINE_ENDINGS_SEND = '\r'; // carriage return for sending
