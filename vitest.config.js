@@ -32,6 +32,17 @@ const config = {
     env: {
       NODE_ENV: 'test',
     },
+
+    /**
+     * Run E2E tests sequentially to avoid Electron process conflicts.
+     * Multiple Electron instances can't be launched simultaneously.
+     */
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
 };
 
