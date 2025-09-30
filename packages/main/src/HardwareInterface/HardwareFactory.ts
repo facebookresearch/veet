@@ -12,6 +12,7 @@ import { ProductionSerialPortFactory } from './ProductionSerialPort';
 import { MockDriveList, MockDriveListScenarios } from './MockDriveList';
 import { MockDiskUsage, MockDiskUsageScenarios } from './MockDiskUsage';
 import { MockSerialPortFactory, MockSerialPortScenarios } from './MockSerialPort';
+import { MockHardwareOrchestrator } from './MockHardwareOrchestrator';
 
 /**
  * Hardware factory interface for managing hardware abstraction instances.
@@ -36,6 +37,12 @@ export interface IHardwareFactory {
      * @returns ISerialPortFactory instance appropriate for the current environment
      */
     getSerialPortFactory(): ISerialPortFactory;
+
+    /**
+     * Get a mock hardware orchestrator for testing (lazy initialized).
+     * @returns MockHardwareOrchestrator instance for testing environments, null for production
+     */
+    getMockHardwareOrchestrator(): MockHardwareOrchestrator | null;
 }
 
 /**
@@ -80,6 +87,14 @@ export class ProductionHardwareFactory implements IHardwareFactory {
         }
         return this.serialPortFactory_;
     }
+
+    /**
+     * Get a mock hardware orchestrator for testing.
+     * @returns null for production environment
+     */
+    getMockHardwareOrchestrator(): MockHardwareOrchestrator | null {
+        return null;
+    }
 }
 
 /**
@@ -91,6 +106,7 @@ export class MockHardwareFactory implements IHardwareFactory {
     private driveList_: IDriveList | null = null;
     private diskUsage_: IDiskUsage | null = null;
     private serialPortFactory_: ISerialPortFactory | null = null;
+    private mockHardwareOrchestrator_: MockHardwareOrchestrator | null = null;
 
     /**
      * Get a mock drive list implementation for testing (lazy initialized).
@@ -99,7 +115,7 @@ export class MockHardwareFactory implements IHardwareFactory {
     getDriveList(): IDriveList {
         if (!this.driveList_) {
             // Default to single device scenario for most tests
-            this.driveList_ = new MockDriveList(MockDriveListScenarios.singleDevice());
+            this.driveList_ = new MockDriveList(MockDriveListScenarios.noDevices());
         }
         return this.driveList_;
     }
@@ -122,10 +138,26 @@ export class MockHardwareFactory implements IHardwareFactory {
      */
     getSerialPortFactory(): ISerialPortFactory {
         if (!this.serialPortFactory_) {
-            // Default to single device scenario for most tests
-            this.serialPortFactory_ = new MockSerialPortFactory(MockSerialPortScenarios.singleDevice());
+            // Default to no devices scenario - devices should be connected explicitly
+            this.serialPortFactory_ = new MockSerialPortFactory(MockSerialPortScenarios.noDevices());
         }
         return this.serialPortFactory_;
+    }
+
+    /**
+     * Get a mock hardware orchestrator for testing (lazy initialized).
+     * @returns MockHardwareOrchestrator instance that coordinates all mock hardware interfaces
+     */
+    getMockHardwareOrchestrator(): MockHardwareOrchestrator | null {
+        if (!this.mockHardwareOrchestrator_) {
+            // Create orchestrator using the same mock instances returned by other methods
+            this.mockHardwareOrchestrator_ = new MockHardwareOrchestrator(
+                this.getDriveList() as MockDriveList,
+                this.getDiskUsage() as MockDiskUsage,
+                this.getSerialPortFactory() as MockSerialPortFactory,
+            );
+        }
+        return this.mockHardwareOrchestrator_;
     }
 }
 

@@ -25,6 +25,8 @@ export type ContextBridgeApi = {
   recordLogMessage: (level: string, message: string, ...meta: any[]) => void;
   writeClipboard: (data: string) => void;
   toggleRecording: () => void;
+  connectMockDevice: () => void;
+  disconnectMockDevice: () => void;
 
   // Main -> Renderer
   updateDataStore: (cb: (event: IpcRendererEvent, dataStore: VEETDataStore) => void) => () => void; // return unsubscribe callback

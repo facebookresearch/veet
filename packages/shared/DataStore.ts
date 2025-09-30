@@ -36,7 +36,8 @@ export interface VEETDataStore {
   recordingStream: boolean;
   modalMessage: string | null;
   windowSize: [number, number];
-  configTemplate: string | null
+  configTemplate: string | null;
+  isMockDeviceConnected: boolean; // Track if mock hardware device is connected
 }
 
 type ChangeHandler = (data: Readonly<VEETDataStore>) => void;
@@ -66,6 +67,7 @@ const initialData: VEETDataStore = deepFreeze({
   modalMessage: null,
   windowSize: [DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT],
   configTemplate: null,
+  isMockDeviceConnected: false,
 });
 
 let gStoreData: VEETDataStore = initialData;

@@ -8,6 +8,11 @@
 import { EventEmitter } from 'events';
 import type { ISerialPort, ISerialPortFactory, SerialPortOptions, PortInfo } from './HardwareInterfaces';
 
+export const SAMPLE_ALS_DATA = '1759182959,ALS,100,4096,32,128,143898,495539,466374,7,1818.9928';
+export const SAMPLE_IMU_DATA = '1759183001,IMU,6.238092,-5.171476,-5.330690,-0.854492,-1.770020,-1.708984,40.000000';
+export const SAMPLE_PHO_DATA = '1759183072,PHO,100,512,1806,3097,4658,6039,6713,6881,8357,8133,8279,0,26450,24822';
+export const SAMPLE_TOF_DATA = '1759183112,TOF,35,31,14,9,10,12,20,16,47,49,30,38,20,35,25,12,47,85,138,177,255,123,29,16,44,113,250,255,255,255,107,42,31,79,171,255,255,215,124,51,23,46,97,130,132,102,67,36,25,27,50,55,52,43,32,23,26,26,25,25,23,27,23,24,0,11,12,14,17,17,0,6,0,11,12,19,35,0,0,0,0,0,0,0,23,31,22,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,273,270,268,281,274,307,267,310,268,267,253,242,256,690,702,703,264,264,258,249,247,247,252,258,266,269,265,255,251,253,261,267,309,322,315,310,271,273,273,277,302,326,321,316,284,279,278,268,296,317,321,327,318,325,310,307,287,293,310,312,299,291,298,288,0,719,727,711,714,715,0,709,0,717,706,702,693,0,0,0,0,0,0,0,667,669,674,668,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0';
+
 /**
  * Mock VEET device state for simulating realistic device behavior.
  */
@@ -84,10 +89,10 @@ export class MockSerialPortFactory implements ISerialPortFactory {
         this.config = {
             devices: [],
             sensorData: {
-                imuData: '1695123456,IMU,0.12,-0.34,9.81,0.01,0.02,-0.01',
-                phoData: '1695123456,PHO,1234,5678,9012,3456,7890',
-                tofData: '1695123456,TOF,45.6,67.8,123.4,89.0',
-                alsData: '1695123456,ALS,1250,890,456',
+                imuData: SAMPLE_IMU_DATA,
+                phoData: SAMPLE_PHO_DATA,
+                tofData: SAMPLE_TOF_DATA,
+                alsData: SAMPLE_ALS_DATA,
             },
             globalErrorProbability: 0,
             simulateRealisticTiming: true,
@@ -175,6 +180,16 @@ export class MockSerialPort extends EventEmitter implements ISerialPort {
         this.options = options;
         this.device = device;
         this.config = config;
+
+        // Auto-open by default to match real serialport behavior
+        // The real serialport library auto-opens unless autoOpen is explicitly set to false
+        const autoOpen = (options as SerialPortOptions & { autoOpen?: boolean }).autoOpen !== false;
+        if (autoOpen) {
+            // Use nextTick to ensure the constructor completes before opening
+            process.nextTick(() => {
+                this.open();
+            });
+        }
     }
 
     /**
@@ -348,6 +363,9 @@ export class MockSerialPort extends EventEmitter implements ISerialPort {
             case 'FV': // Firmware Version
                 return this.device.firmwareVersion;
 
+            case 'VR': // Version/Build Information
+                return `Build: ${this.device.firmwareVersion} HW: ${this.device.hardwareVersion}`;
+
             case 'RE': // Reset/Reboot Device
                 setTimeout(() => {
                     this.device!.isConnected = false;
@@ -518,10 +536,10 @@ export class MockSerialPortScenarios {
                 },
             ],
             sensorData: {
-                imuData: '1695123456,IMU,0.12,-0.34,9.81,0.01,0.02,-0.01',
-                phoData: '1695123456,PHO,1234,5678,9012,3456,7890',
-                tofData: '1695123456,TOF,45.6,67.8,123.4,89.0',
-                alsData: '1695123456,ALS,1250,890,456',
+                imuData: SAMPLE_IMU_DATA,
+                phoData: SAMPLE_PHO_DATA,
+                tofData: SAMPLE_TOF_DATA,
+                alsData: SAMPLE_ALS_DATA,
             },
             globalErrorProbability: 0,
             simulateRealisticTiming: true,
@@ -630,11 +648,15 @@ export class MockSerialPortScenarios {
 
         // Update sensor data to simulate realistic readings
         const timestamp = Math.floor(Date.now() / 1000);
+        const fixTimeStamp = (data: string) => {
+            // Cut timestamp off front and use this timestamp
+            return timestamp + ',' + data.split(',')[1];
+        };
         config.sensorData = {
-            imuData: `${timestamp},IMU,0.15,-0.28,9.83,0.012,0.025,-0.008`,
-            phoData: `${timestamp},PHO,1856,2341,2987,3124,3456`,
-            tofData: `${timestamp},TOF,127.5,89.2,156.8,203.4`,
-            alsData: `${timestamp},ALS,1450,920,678`,
+            imuData: fixTimeStamp(SAMPLE_IMU_DATA),
+            phoData: fixTimeStamp(SAMPLE_PHO_DATA),
+            tofData: fixTimeStamp(SAMPLE_TOF_DATA),
+            alsData: fixTimeStamp(SAMPLE_ALS_DATA),
         };
 
         return config;

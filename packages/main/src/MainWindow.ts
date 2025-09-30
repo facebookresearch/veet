@@ -11,6 +11,7 @@ import { commands } from '../../shared/commands';
 import { SerialConnectionStatus, SerialManager } from './SerialManager';
 import { invLerpClamped } from '../../shared/utils';
 import { hardwareFactory } from './HardwareInterface/HardwareFactory';
+import { MockHardwareOrchestrator } from './HardwareInterface/MockHardwareOrchestrator';
 
 import * as path from 'path';
 import * as fsPromises from 'fs/promises';
@@ -1006,6 +1007,33 @@ export class MainWindow {
     void shell.openExternal(`file://${VEET_MANUAL_PATH()}`);
   };
 
+  connectMockDevice = () => {
+    const mockOrchestrator = hardwareFactory.getMockHardwareOrchestrator();
+    if (!mockOrchestrator) {
+      logger.warn('No mock hardware orchestrator available');
+      return;
+    }
+
+    // Connect the VEET 2.4.0 device using the static configuration
+    mockOrchestrator.connectDevice('VEET 2.4.0', MockHardwareOrchestrator.VEET_240_CONFIG);
+    setDatastoreValue('isMockDeviceConnected', true);
+    logger.info('Mock VEET 2.4.0 device connected');
+    SetupCustomMenus(this);
+  };
+
+  disconnectMockDevice = () => {
+    const mockOrchestrator = hardwareFactory.getMockHardwareOrchestrator();
+    if (!mockOrchestrator) {
+      logger.warn('No mock hardware orchestrator available');
+      return;
+    }
+
+    mockOrchestrator.disconnectAllDevices();
+    setDatastoreValue('isMockDeviceConnected', false);
+    logger.info('Mock device disconnected');
+    SetupCustomMenus(this);
+  };
+
   whenReady = () => {
     ipcMain.handle(commands.runCommand, this.runCommand);
     ipcMain.handle(commands.showFolder, this.showFolder);
@@ -1032,6 +1060,8 @@ export class MainWindow {
     ipcMain.handle(commands.toggleRecording, (_) => {
       this.streamRecorder_?.ToggleRecording();
     });
+    ipcMain.handle(commands.connectMockDevice, this.connectMockDevice);
+    ipcMain.handle(commands.disconnectMockDevice, this.disconnectMockDevice);
 
     // If requested, send both store updates
     ipcMain.handle(commands.requestStoresUpdate, () => {

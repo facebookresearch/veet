@@ -70,7 +70,7 @@ describe('Hardware Mock Validation - IDriveList', () => {
             // Find the VEET device
             const veetDevice = drives.find(d => d.device === '/dev/sdb1');
             expect(veetDevice).toBeDefined();
-            expect(veetDevice!.description).toBe('VEET Device Storage');
+            expect(veetDevice!.description).toBe('Microchp Mass Storage');
             expect(veetDevice!.size).toBe(8000000000); // 8GB
             expect(veetDevice!.isUSB).toBe(true);
             expect(veetDevice!.isRemovable).toBe(true);
@@ -89,7 +89,7 @@ describe('Hardware Mock Validation - IDriveList', () => {
             expect(drives).toHaveLength(3);
 
             // Find the VEET devices
-            const veetDevices = drives.filter(d => d.description.includes('VEET'));
+            const veetDevices = drives.filter(d => d.description.includes('Microchp Mass Storage'));
             expect(veetDevices).toHaveLength(2);
 
             expect(veetDevices[0].device).toBe('/dev/sdb1');
@@ -170,10 +170,9 @@ describe('Hardware Mock Validation - IDriveList', () => {
 
             const drives = await driveList.list();
 
-            // Factory default is single device scenario
+            // Factory default is no devices scenario
             const veetDevices = drives.filter(d => d.description.includes('VEET'));
-            expect(veetDevices).toHaveLength(1);
-            expect(veetDevices[0].device).toBe('/dev/sdb1');
+            expect(veetDevices).toHaveLength(0);
         });
     });
 
@@ -264,7 +263,7 @@ describe('Hardware Mock Validation - IDriveList', () => {
 
             // Initial state should have 2 VEET devices
             let drives = await mockDriveList.list();
-            let veetDevices = drives.filter(d => d.description.includes('VEET'));
+            let veetDevices = drives.filter(d => d.description.includes('Microchp Mass Storage'));
             expect(veetDevices).toHaveLength(2);
 
             // Remove one device
@@ -272,7 +271,7 @@ describe('Hardware Mock Validation - IDriveList', () => {
 
             // Should now have 1 VEET device
             drives = await mockDriveList.list();
-            veetDevices = drives.filter(d => d.description.includes('VEET'));
+            veetDevices = drives.filter(d => d.description.includes('Microchp Mass Storage'));
             expect(veetDevices).toHaveLength(1);
             expect(veetDevices[0].device).toBe('/dev/sdc1');
         });
@@ -356,7 +355,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             expect(ports.map(p => p.serialNumber)).toEqual(['TEST001', 'TEST002', 'TEST003']);
         });
 
-        it('should create serial port instances', () => {
+        it('should create serial port instances', async () => {
             const config = MockSerialPortScenarios.singleDevice();
             const factory = new MockSerialPortFactory(config);
 
@@ -364,6 +363,23 @@ describe('Hardware Mock Validation - ISerialPort', () => {
 
             expect(port).toBeDefined();
             expect(port.isOpen).toBe(false);
+
+            // Wait for auto-open to complete and clean up
+            await new Promise<void>((resolve) => {
+                port.on('open', () => {
+                    resolve();
+                });
+            });
+
+            expect(port.isOpen).toBe(true);
+
+            // Clean up
+            if (port.isOpen) {
+                await new Promise<void>((resolve) => {
+                    port.on('close', resolve);
+                    port.close();
+                });
+            }
         });
 
         it('should support dynamic device management', async () => {
@@ -441,7 +457,6 @@ describe('Hardware Mock Validation - ISerialPort', () => {
                     }
                 });
                 port.on('error', reject);
-                port.open();
             });
 
             // Test closing
@@ -460,7 +475,8 @@ describe('Hardware Mock Validation - ISerialPort', () => {
 
         it('should handle port opening errors for non-existent devices', async () => {
             const factory = new MockSerialPortFactory(); // No devices
-            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            // Disable autoOpen to test explicit open behavior
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
 
             await expect(new Promise<void>((resolve, reject) => {
                 port.on('error', (error) => {
@@ -473,32 +489,120 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             })).rejects.toThrow('No such file or directory');
         });
 
+        it('should auto-open by default for connected devices', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Port should auto-open on next tick
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', () => {
+                    try {
+                        expect(port.isOpen).toBe(true);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                port.on('error', reject);
+                // No explicit open() call needed due to autoOpen
+            });
+
+            // Clean up
+            if (port.isOpen) {
+                await new Promise<void>((resolve) => {
+                    port.on('close', resolve);
+                    port.close();
+                });
+            }
+        });
+
+        it('should emit error event on auto-open for non-existent devices', async () => {
+            const factory = new MockSerialPortFactory(); // No devices
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+            // Auto-open should fail and emit error for non-existent device
+            await expect(new Promise<void>((resolve, reject) => {
+                port.on('error', (error) => {
+                    reject(error);
+                });
+                port.on('open', () => {
+                    resolve();
+                });
+                // No explicit open() call - autoOpen will handle it
+            })).rejects.toThrow('No such file or directory');
+        });
+
+        it('should support disabling autoOpen', async () => {
+            const config = MockSerialPortScenarios.singleDevice();
+            const factory = new MockSerialPortFactory(config);
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
+
+            // Port should not be open initially
+            expect(port.isOpen).toBe(false);
+
+            // Wait briefly to ensure autoOpen doesn't trigger
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(port.isOpen).toBe(false);
+
+            // Manual open should work
+            await new Promise<void>((resolve, reject) => {
+                port.on('open', () => {
+                    try {
+                        expect(port.isOpen).toBe(true);
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                port.on('error', reject);
+                port.open();
+            });
+
+            // Clean up
+            if (port.isOpen) {
+                await new Promise<void>((resolve) => {
+                    port.on('close', resolve);
+                    port.close();
+                });
+            }
+        });
+
         it('should handle basic VEET command communication', async () => {
             const config = MockSerialPortScenarios.singleDevice();
             const factory = new MockSerialPortFactory(config);
             const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
 
-            // Open port first
-            await new Promise<void>((resolve, reject) => {
-                port.on('open', resolve);
-                port.on('error', reject);
-                port.open();
-            });
-
-            // Send command and wait for response
-            const response = await new Promise<string>((resolve, reject) => {
-                port.on('data', (data) => {
-                    resolve(data.toString());
+            try {
+                // Wait for auto-open to complete
+                await new Promise<void>((resolve, reject) => {
+                    port.on('open', resolve);
+                    port.on('error', reject);
+                    // Auto-open will handle the opening
                 });
-                port.on('error', reject);
-                port.write('GB\r');
-            });
 
-            // Should receive battery response terminated with EOT (accept both formats)
-            expect(response).toMatch(/(Battery: \d+mV|\d+,BAT,\d+)/);
-            expect(response).toContain('\u0004');
+                // Send command and wait for response
+                const response = await new Promise<string>((resolve, reject) => {
+                    port.on('data', (data) => {
+                        resolve(data.toString());
+                    });
+                    port.on('error', reject);
+                    port.write('GB\r');
+                });
 
-            port.close();
+                // Should receive battery response terminated with EOT (accept both formats)
+                expect(response).toMatch(/(Battery: \d+mV|\d+,BAT,\d+)/);
+                expect(response).toContain('\u0004');
+            } finally {
+                // Clean up
+                port.removeAllListeners();
+                if (port.isOpen) {
+                    await new Promise<void>((resolve) => {
+                        port.on('close', resolve);
+                        port.close();
+                    });
+                }
+            }
         });
 
         it('should handle SET TIME command', async () => {
@@ -506,31 +610,41 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             const factory = new MockSerialPortFactory(config);
             const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
 
-            // Open port first
-            await new Promise<void>((resolve, reject) => {
-                port.on('open', resolve);
-                port.on('error', reject);
-                port.open();
-            });
-
-            // Send SET TIME command
-            const newTime = Math.floor(Date.now() / 1000);
-            const response = await new Promise<string>((resolve, reject) => {
-                port.on('data', (data) => {
-                    resolve(data.toString());
+            try {
+                // Wait for auto-open to complete
+                await new Promise<void>((resolve, reject) => {
+                    port.on('open', resolve);
+                    port.on('error', reject);
+                    // Auto-open will handle the opening
                 });
-                port.on('error', reject);
-                port.write(`ST${newTime}\r`);
-            });
 
-            expect(response).toBe('Time set\u0004');
-            port.close();
+                // Send SET TIME command
+                const newTime = Math.floor(Date.now() / 1000);
+                const response = await new Promise<string>((resolve, reject) => {
+                    port.on('data', (data) => {
+                        resolve(data.toString());
+                    });
+                    port.on('error', reject);
+                    port.write(`ST${newTime}\r`);
+                });
+
+                expect(response).toBe('Time set\u0004');
+            } finally {
+                // Clean up
+                port.removeAllListeners();
+                if (port.isOpen) {
+                    await new Promise<void>((resolve) => {
+                        port.on('close', resolve);
+                        port.close();
+                    });
+                }
+            }
         });
 
         it('should handle unknown commands', async () => {
             const config = MockSerialPortScenarios.singleDevice();
             const factory = new MockSerialPortFactory(config);
-            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
 
             // Open port first
             await new Promise<void>((resolve, reject) => {
@@ -577,7 +691,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
         it('should handle basic state management', () => {
             const config = MockSerialPortScenarios.singleDevice();
             const factory = new MockSerialPortFactory(config);
-            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
 
             // Initial state
             expect(port.isOpen).toBe(false);
@@ -596,7 +710,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
         it('should handle error simulation with unreliable device', async () => {
             const config = MockSerialPortScenarios.unreliableDevice();
             const factory = new MockSerialPortFactory(config);
-            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
 
             // Open port first
             await new Promise<void>((resolve, reject) => {
@@ -640,12 +754,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             const serialPortFactory = factory.getSerialPortFactory();
 
             const ports = await serialPortFactory.list();
-            const port = serialPortFactory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
-
-            // Factory default should work consistently
-            expect(Array.isArray(ports)).toBe(true);
-            expect(port).toBeDefined();
-            expect(typeof port.isOpen).toBe('boolean');
+            expect(ports).toHaveLength(0);
         });
     });
 
@@ -661,7 +770,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             expect(Array.isArray(ports)).toBe(true);
 
             // Should have create method that returns ISerialPort
-            const port = factory.create({ path: '/test', baudRate: 115200 });
+            const port = factory.create({ path: '/test', baudRate: 115200, autoOpen: false });
             expect(port).toBeDefined();
         });
 
@@ -762,11 +871,11 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             expect(typeof config.sensorData.tofData).toBe('string');
             expect(typeof config.sensorData.alsData).toBe('string');
 
-            // Sensor data should contain timestamp format
-            expect(config.sensorData.imuData).toMatch(/^\d+,IMU,/);
-            expect(config.sensorData.phoData).toMatch(/^\d+,PHO,/);
-            expect(config.sensorData.tofData).toMatch(/^\d+,TOF,/);
-            expect(config.sensorData.alsData).toMatch(/^\d+,ALS,/);
+            // Sensor data should contain timestamp format (accept both with and without trailing comma)
+            expect(config.sensorData.imuData).toMatch(/^\d+,IMU/);
+            expect(config.sensorData.phoData).toMatch(/^\d+,PHO/);
+            expect(config.sensorData.tofData).toMatch(/^\d+,TOF/);
+            expect(config.sensorData.alsData).toMatch(/^\d+,ALS/);
         });
     });
 
@@ -777,7 +886,7 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             const ports = await factory.list();
             expect(ports).toHaveLength(0);
 
-            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
+            const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200, autoOpen: false });
             expect(port).toBeDefined();
             expect(port.isOpen).toBe(false);
         });
@@ -787,37 +896,54 @@ describe('Hardware Mock Validation - ISerialPort', () => {
             const factory = new MockSerialPortFactory(config);
             const port = factory.create({ path: '/dev/ttyUSB0', baudRate: 115200 });
 
-            // Open port first
-            await new Promise<void>((resolve, reject) => {
-                port.on('open', () => {
-                    resolve();
-                    // Send a command after opening
-                    port.write('GB\r');
-                });
-                port.on('error', reject);
-                port.open();
-            });
+            try {
+                // Open port first
+                await new Promise<void>((resolve, reject) => {
+                    const onOpen = () => {
+                        port.removeListener('error', onError);
+                        resolve();
+                    };
+                    const onError = (error: Error) => {
+                        port.removeListener('open', onOpen);
+                        reject(error);
+                    };
 
-            // Manually simulate disconnection by forcing device state change
-            const device = config.devices[0];
-
-            // Wait for close event (simulate device disconnection)
-            await new Promise<void>((resolve) => {
-                port.on('close', () => {
-                    resolve();
+                    port.on('open', onOpen);
+                    port.on('error', onError);
                 });
 
-                // Trigger disconnection quickly for testing
-                setTimeout(() => {
-                    device.isConnected = false;
-                    if (port.isOpen) {
-                        // Use type assertion to access private property for testing
-                        (port as unknown as { _isOpen: boolean })._isOpen = false;
-                        port.emit('close');
-                    }
-                }, 100); // Disconnect after 100ms instead of 5 seconds
-            });
-        }, 3000); // Increase test timeout to 3 seconds to be safe
+                // Send a command after opening
+                port.write('GB\r');
+
+                // Manually simulate disconnection by forcing device state change
+                const device = config.devices[0];
+
+                // Wait for close event (simulate device disconnection)
+                await new Promise<void>((resolve) => {
+                    const onClose = () => {
+                        resolve();
+                    };
+
+                    port.on('close', onClose);
+
+                    // Trigger disconnection quickly for testing
+                    setTimeout(() => {
+                        device.isConnected = false;
+                        if (port.isOpen) {
+                            // Use type assertion to access private property for testing
+                            (port as unknown as { _isOpen: boolean })._isOpen = false;
+                            port.emit('close');
+                        }
+                    }, 100);
+                });
+            } finally {
+                // Clean up event listeners to prevent unhandled errors
+                port.removeAllListeners();
+                if (port.isOpen) {
+                    port.close();
+                }
+            }
+        }, 3000);
 
         it('should handle configuration updates', async () => {
             const factory = new MockSerialPortFactory();

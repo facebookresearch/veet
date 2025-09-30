@@ -30,6 +30,8 @@ const exposedApi: ContextBridgeApi = {
   recordLogMessage: (level: string, message: string, ...meta: any[]) => ipcRenderer.invoke(commands.recordLogMessage, level, message, ...meta),
   writeClipboard: (data: string) => ipcRenderer.invoke(commands.writeClipboard, data),
   toggleRecording: () => ipcRenderer.invoke(commands.toggleRecording),
+  connectMockDevice: () => ipcRenderer.invoke(commands.connectMockDevice),
+  disconnectMockDevice: () => ipcRenderer.invoke(commands.disconnectMockDevice),
 
   // Main -> Renderer
   updateDataStore: cb => {

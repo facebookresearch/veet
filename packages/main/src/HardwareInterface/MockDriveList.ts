@@ -5,6 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+import { VEET_DRIVE_DESCRIPTION } from '../../../shared/constants';
 import type { IDriveList, DriveInfo } from './HardwareInterfaces';
 
 /**
@@ -153,7 +154,7 @@ export class MockDriveListScenarios {
             veetDevices: [
                 {
                     device: '/dev/sdb1',
-                    description: 'VEET Device Storage',
+                    description: VEET_DRIVE_DESCRIPTION,
                     size: 8000000000, // 8GB
                     mountPath: '/mnt/veet1',
                     label: 'VEET',
@@ -180,14 +181,14 @@ export class MockDriveListScenarios {
             veetDevices: [
                 {
                     device: '/dev/sdb1',
-                    description: 'VEET Device Storage #1',
+                    description: VEET_DRIVE_DESCRIPTION,
                     size: 8000000000,
                     mountPath: '/mnt/veet1',
                     label: 'VEET_001',
                 },
                 {
                     device: '/dev/sdc1',
-                    description: 'VEET Device Storage #2',
+                    description: VEET_DRIVE_DESCRIPTION,
                     size: 8000000000,
                     mountPath: '/mnt/veet2',
                     label: 'VEET_002',
@@ -257,7 +258,7 @@ export class MockDriveListScenarios {
             veetDevices: [
                 {
                     device: 'F:',
-                    description: 'VEET Device Storage',
+                    description: VEET_DRIVE_DESCRIPTION,
                     size: 8000000000,
                     mountPath: 'F:\\',
                     label: 'VEET',

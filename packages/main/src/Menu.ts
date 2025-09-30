@@ -12,6 +12,7 @@ import { getSettingsStore, setSettingsStoreValue } from '../../shared/SettingsSt
 import type { MainWindow } from './MainWindow';
 import { logger } from '../../shared/Logger';
 import { getDataStore } from '../../shared/DataStore';
+import { hardwareFactory } from './HardwareInterface/HardwareFactory';
 
 
 
@@ -112,27 +113,53 @@ export const SetupCustomMenus = (mainWindow: MainWindow) => {
     },
   ];
 
-  if (getSettingsStore().developerMode) {
-    template.push(
+  const mockOrchestrator = hardwareFactory.getMockHardwareOrchestrator();
+  if (getSettingsStore().developerMode || mockOrchestrator) {
+    const isMockHardwareAvailable = mockOrchestrator !== null;
+    const isMockDeviceConnected = getDataStore().isMockDeviceConnected;
+
+    const developerToolsSubmenu: MenuItemConstructorOptions[] = [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
       {
-        label: 'Developer Tools',
-        submenu: [
-          { role: 'reload' },
-          { role: 'forceReload' },
-          { role: 'toggleDevTools' },
-          { type: 'separator' },
-          {
-            label: 'Toggle Serial Log',
-            click: () => {
-              const newShowSerialLogSetting = !getSettingsStore().showSerialLog;
-              setSettingsStoreValue('showSerialLog', newShowSerialLogSetting);
-              if (newShowSerialLogSetting) {
-                setSettingsStoreValue('currentTab', TAB_NAMES.SERIAL_LOG);
-              }
-            },
+        label: 'Toggle Serial Log',
+        click: () => {
+          const newShowSerialLogSetting = !getSettingsStore().showSerialLog;
+          setSettingsStoreValue('showSerialLog', newShowSerialLogSetting);
+          if (newShowSerialLogSetting) {
+            setSettingsStoreValue('currentTab', TAB_NAMES.SERIAL_LOG);
+          }
+        },
+      },
+    ];
+
+    // Add mock device connection options only if mock hardware is available
+    if (isMockHardwareAvailable) {
+      developerToolsSubmenu.push(
+        { type: 'separator' },
+        {
+          label: 'Connect Mock VEET 2.4.0 Device',
+          click: () => {
+            mainWindow.connectMockDevice();
           },
-        ],
-      });
+          enabled: !isMockDeviceConnected,
+        },
+        {
+          label: 'Disconnect Mock Device',
+          click: () => {
+            mainWindow.disconnectMockDevice();
+          },
+          enabled: isMockDeviceConnected,
+        },
+      );
+    }
+
+    template.push({
+      label: 'Developer Tools',
+      submenu: developerToolsSubmenu,
+    });
   }
 
   const menu = Menu.buildFromTemplate(template);

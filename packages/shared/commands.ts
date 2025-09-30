@@ -20,6 +20,8 @@ export const commands = {
   recordLogMessage: 'recordLogMessage',
   writeClipboard: 'writeClipboard',
   toggleRecording: 'toggleRecording',
+  connectMockDevice: 'connectMockDevice',
+  disconnectMockDevice: 'disconnectMockDevice',
 
   // Main -> Renderer
   updateDataStore: 'updateDataStore',

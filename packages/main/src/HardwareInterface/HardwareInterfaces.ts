@@ -72,6 +72,7 @@ export interface IDiskUsage {
 export interface SerialPortOptions {
     path: string;
     baudRate: number;
+    autoOpen?: boolean;
     // Add other options as needed for production wrapper
 }
 
