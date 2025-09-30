@@ -88,7 +88,7 @@ function checkBuildReady(options = {shouldExit: true, silent: false}) {
 }
 
 // Allow this script to be run directly or imported
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (__filename === process.argv[1]) {
   checkBuildReady();
 }
 

@@ -7,7 +7,10 @@
  */
 
 import {execSync} from 'child_process';
+import {fileURLToPath} from 'url';
 import {checkBuildReady} from './check-build-ready.js';
+
+const __filename = fileURLToPath(import.meta.url);
 
 /**
  * Ensures the project is built and ready to run.
@@ -41,6 +44,6 @@ function ensureBuildReady() {
 }
 
 // Allow this script to be run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (__filename === process.argv[1]) {
   ensureBuildReady();
 }

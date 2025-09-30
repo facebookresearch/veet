@@ -86,10 +86,7 @@ async function setupEdenRedirect() {
 async function runViteBuild() {
   console.log('Building Vite packages...');
 
-  // Build in sequence: main, preload, then renderer
-  await runCommand('yarn', ['viteBuild:main']);
-  await runCommand('yarn', ['viteBuild:preload']);
-  await runCommand('yarn', ['viteBuild:renderer']);
+  await runCommand('yarn', ['viteBuild']);
 
   console.log('Vite build completed successfully');
 }
@@ -127,7 +124,7 @@ async function build() {
 }
 
 // Run the build if this script is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (__filename === process.argv[1]) {
   build();
 }
 
