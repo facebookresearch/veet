@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.5 - 10/03/2025
+
+* Prompts to install Firmware 2.2.4 on compatible devices.
+* Includes additional calibration files for devices manufactured in August and September 2025. These files will be installed during firmware upgrade if the latest version is not already installed on the device.
+* Enforces minimum VEET charge level of 10% (relaxed from 20%) before firmware updates.
+
 ## 2.2.4 - 08/07/2025
 
 ### Firmware
