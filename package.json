@@ -50,7 +50,7 @@
     "electron": "31.2.0",
     "electron-builder": "^25.1.8",
     "eslint": "8.57.0",
-    "happy-dom": "^15.10.1",
+    "happy-dom": "^20.8.8",
     "marked": "^13.0.2",
     "nano-staged": "0.8.0",
     "playwright": "1.45.1",
