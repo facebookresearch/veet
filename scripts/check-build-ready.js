@@ -18,7 +18,6 @@ const projectRoot = join(__dirname, '..');
 const requiredFiles = [
   // Native module binaries
   'node_modules/drivelist/build/Release/drivelist.node',
-  'node_modules/diskusage/build/Release/diskusage.node',
   'node_modules/@serialport/bindings-cpp/prebuilds/darwin-x64+arm64/node.napi.node',
 
   // Other important native modules that might be needed

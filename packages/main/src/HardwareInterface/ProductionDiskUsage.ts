@@ -5,28 +5,28 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { check } from 'diskusage';
+import { statfs } from 'node:fs/promises';
 import type { IDiskUsage, DiskUsageInfo } from './HardwareInterfaces';
 
 /**
- * Production implementation of IDiskUsage that wraps the diskusage library.
+ * Production implementation of IDiskUsage that uses Node.js built-in fs.statfs.
  * This provides the actual disk usage functionality for hardware interaction
  * in production environments.
  */
 export class ProductionDiskUsage implements IDiskUsage {
     /**
-     * Check disk usage for a given path using the diskusage library.
+     * Check disk usage for a given path using Node.js fs.statfs.
      * @param path The path to check disk usage for
      * @returns Promise that resolves to disk usage information
      * @throws Error if the path is invalid or disk usage check fails
      */
     async check(path: string): Promise<DiskUsageInfo> {
         try {
-            const diskInfo = await check(path);
+            const stats = await statfs(path);
             return {
-                available: diskInfo.available,
-                free: diskInfo.free,
-                total: diskInfo.total,
+                available: stats.bavail * stats.bsize,
+                free: stats.bfree * stats.bsize,
+                total: stats.blocks * stats.bsize,
             };
         } catch (error) {
             throw new Error(`Failed to check disk usage for path "${path}": ${error}`);
