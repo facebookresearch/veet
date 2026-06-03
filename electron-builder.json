@@ -1,5 +1,6 @@
 {
   "appId": "com.meta.veetmanager",
+  "npmRebuild": false,
   "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
   "directories": {
     "buildResources": "buildResources",
