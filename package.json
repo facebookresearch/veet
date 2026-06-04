@@ -2,6 +2,8 @@
   "name": "veetmanager",
   "productName": "VEET Manager",
   "version": "2.2.5",
+  "description": "Desktop application for managing VEET devices.",
+  "author": "Meta Platforms, Inc.",
   "authors": "Meta Platforms, Inc.",
   "main": "packages/main/dist/index.js",
   "license": "SEE LICENSE IN LICENSE",
@@ -87,6 +89,8 @@
   "packageManager": "yarn@1.18.0",
   "resolutions": {
     "cross-spawn": "^7.0.5",
+    "electron-builder/app-builder-lib/@electron/universal/@electron/asar/glob": "^7.2.3",
+    "electron-builder/app-builder-lib/@electron/universal/@electron/asar/minimatch": "^3.1.5",
     "**/glob": "^10.5.0",
     "js-yaml": ">=4.1.1",
     "cacache": "^19.0.1",
@@ -101,6 +105,7 @@
     "@tootallnate/once": ">=3.0.1",
     "tmp": ">=0.2.4",
     "yaml": ">=1.10.3",
-    "@xmldom/xmldom": ">=0.8.12"
+    "plist": "^3.1.1",
+    "@xmldom/xmldom": "^0.9.10"
   }
 }
