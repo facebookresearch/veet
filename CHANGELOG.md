@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.6 - 06/16/2026
+
+* Includes refreshed calibration files with new data through April 2026, covering 1052 devices. These files will be installed during firmware upgrade if the latest version is not already installed on the device.
+
 ## 2.2.5 - 10/03/2025
 
 * Prompts to install Firmware 2.2.4 on compatible devices.
